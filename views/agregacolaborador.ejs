@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diseño Colaborativo - Nuevo Proyecto</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-color: #6366f1;
+      --text-color: #1f2937;
+      --text-light: #6b7280;
+      --border-color: #e5e7eb;
+      --background-color: #f8f9fa;
+      --error-color: #ef4444;
+      --success-color: #10b981;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      --transition: all 0.2s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .header i {
+      font-size: 2.5rem;
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
+
+    .header h1 {
+      font-size: 1.75rem;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      color: var(--text-light);
+      font-size: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-color);
+      font-weight: 500;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .input-group i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-light);
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    button {
+      flex: 1;
+      padding: 0.75rem;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    button.primary {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    button.secondary {
+      background: white;
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: white;
+      color: var(--text-color);
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      border: 1px solid var(--border-color);
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.success {
+      border-left: 4px solid var(--success-color);
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--error-color);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <i class="fas fa-plus-circle"></i>
+      <h1>Agregar colaboradores</h1>
+      <p>proyecto de diseño colaborativo</p>
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; margin-bottom:1.5rem;">
+      <thead>
+        <tr>
+          <th style="text-align:left; padding:8px; border-bottom:1px solid #e5e7eb;">
+            <i></i> Colaboradores de este proyecto
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <% proyect.forEach(function(project) { %>
+          <tr>
+            <td style="padding:8px; border-bottom:1px solid #e5e7eb;">
+              <i class="fa fa-user-circle" aria-hidden="true"></i>
+              <%= project.email %>
+            </td>
+          </tr>
+          <% }); %>
+      </tbody>
+    </table>
+
+
+
+    <div class="form-group">
+      <label for="email">Email del usuario</label>
+      <div class="input-group">
+        <i class="fa fa-user-circle" aria-hidden="true"></i>
+        <input type="text" id="email" placeholder="email del usuario a agregar" required>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button class="secondary" onclick="window.location.href='/proyectos'">
+        <i class="fas fa-arrow-left"></i>
+        Cancelar
+      </button>
+      <button class="primary" onclick="agregarColaboradorProyecto()">
+        <i class="fas fa-plus"></i>
+        Agregar Colaborador
+      </button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <i class="fas fa-info-circle"></i>
+    <span id="toast-message"></span>
+  </div>
+
+  <script>
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      toast.className = `toast ${type}`;
+      toastMessage.textContent = message;
+      toast.style.display = 'flex';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+
+    async function agregarColaboradorProyecto() {
+      const email = document.getElementById('email').value;
+
+      if (!email) {
+        showToast('Por favor ingresa el email del usuario para colaborar en este proyecto', 'error');
+        return;
+      }
+
+      try {
+        
+        // Reemplaza '/invitar:/proyecto_id' con la ruta correcta 
+        const res = await fetch('/invitar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email,proyecto_id:'<%= proyect_id %>'})
+        });
+
+        if (res.ok) {
+          
+          showToast('exitosamente');
+          setTimeout(() => {
+            window.location.href = `/agregacolaborador/<%= proyect_id %>`;
+          }, 1000);
+        } else {
+          showToast('Error al agregar usuario al proyecto',res.status);
+        }
+      } catch (error) {
+        showToast('Error al conectar con el servidor', 'error');
+      }
+    }
+  </script>
+</body>
+
+</html>

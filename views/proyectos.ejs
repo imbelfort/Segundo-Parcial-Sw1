@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <meta name="description" content="Plataforma de diseño de interfaces colaborativa">
+  <meta name="author" content="">
+
+  <title>Diseño Colaborativo</title>
+
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary-color: #f8f9fa;
+      --secondary-color: #ffffff;
+      --accent-color: #6366f1;
+      --text-color: #1f2937;
+      --text-light: #6b7280;
+      --border-color: #e5e7eb;
+      --hover-color: #f3f4f6;
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      --radius: 12px;
+      --transition: all 0.2s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--primary-color);
+      color: var(--text-color);
+      line-height: 1.5;
+    }
+
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: var(--secondary-color);
+      padding: 2rem;
+      border-right: 1px solid var(--border-color);
+      position: fixed;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-color);
+      margin-bottom: 3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand i {
+      color: var(--accent-color);
+    }
+
+    .nav-menu {
+      list-style: none;
+    }
+
+    .nav-item {
+      margin-bottom: 0.5rem;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      color: var(--text-color);
+      text-decoration: none;
+      border-radius: var(--radius);
+      transition: var(--transition);
+    }
+
+    .nav-link:hover {
+      background: var(--hover-color);
+    }
+
+    .nav-link i {
+      font-size: 1.25rem;
+      color: var(--text-light);
+    }
+
+    /* Main Content */
+    .main {
+      flex: 1;
+      margin-left: 280px;
+      padding: 2rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .user {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.5rem 1rem;
+      background: var(--secondary-color);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .user img {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .user-name {
+      font-weight: 500;
+      color: var(--text-color);
+    }
+
+    .user-email {
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .project-card {
+      background: var(--secondary-color);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      transition: var(--transition);
+      border: 1px solid var(--border-color);
+    }
+
+    .project-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow);
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .project-title {
+      font-weight: 500;
+      color: var(--text-color);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .project-title i {
+      color: var(--accent-color);
+    }
+
+    .project-date {
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+
+    .project-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius);
+      border: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--accent-color);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #ef4444;
+    }
+
+    .btn-danger:hover {
+      background: #fecaca;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--secondary-color);
+      border-radius: var(--radius);
+      border: 1px solid var(--border-color);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      color: var(--accent-color);
+      margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+      color: var(--text-light);
+      margin-bottom: 1.5rem;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--secondary-color);
+      color: var(--text-color);
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      border: 1px solid var(--border-color);
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="brand">
+        <i class="fas fa-paint-brush"></i>
+        <span>Diseño</span>
+      </div>
+      <ul class="nav-menu">
+        <li class="nav-item">
+          <a href="/proyectos" class="nav-link">
+            <i class="fas fa-folder"></i>
+            <span>Mis Proyectos</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="/createproyecto" class="nav-link">
+            <i class="fas fa-plus"></i>
+            <span>Nuevo Proyecto</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="/proyectocolaboracion" class="nav-link">
+            <i class="fa fa-users" aria-hidden="true"></i>
+            <span>Proyectos en colaboración</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fas fa-star"></i>
+            <span>Favoritos</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a href="#" class="nav-link">
+            <i class="fas fa-clock"></i>
+            <span>Recientes</span>
+          </a>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main">
+      <header class="header">
+        <h1>Mis Proyectos</h1>
+        <div class="user">
+          <img src="https://cdn.pixabay.com/photo/2016/11/14/17/39/person-1824144_960_720.png" alt="Profile">
+          <div class="user-info">
+            <span class="user-name"><%= email %></span>
+            <span class="user-email">Usuario</span>
+          </div>
+          <a href="logout" class="btn btn-danger">
+            <i class="fas fa-sign-out-alt"></i>
+          </a>
+        </div>
+      </header>
+
+      <% if (proyect.length === 0) { %>
+        <div class="empty-state">
+          <i class="fas fa-folder-open"></i>
+          <h3>No tienes proyectos</h3>
+          <p>Crea tu primer proyecto para comenzar a diseñar</p>
+          <a href="/createproyecto" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            Crear Proyecto
+          </a>
+        </div>
+      <% } else { %>
+        <div class="projects-grid">
+          <% proyect.forEach(function(project) { %>
+            <div class="project-card">
+              <div class="project-header">
+                <a href="proyecto/<%= project.id %>" class="project-title">
+                  <i class="fas fa-folder"></i>
+                  <%= project.nombre %>
+                </a>
+                <span class="project-date">
+                  <%= new Date().toLocaleDateString() %>
+                </span>
+              </div>
+              <div class="project-actions">
+                <a class="btn btn-primary" href="/agregacolaborador/<%= project.id %>">
+                  <i class="fa fa-user-plus" aria-hidden="true"></i>
+                  Agregar Colaborador
+                </a>
+                <button class="btn btn-danger" onclick="eliminarProyecto('<%= project.id %>')">
+                  <i class="fas fa-trash"></i>
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+
+
+    
+    </main>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <i class="fas fa-check-circle"></i>
+    <span id="toast-message"></span>
+  </div>
+
+  <script>
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      toastMessage.textContent = message;
+      toast.style.display = 'flex';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+
+    function copyPageUrlinvitacion(url) {
+      const tempInput = document.createElement('input');
+      tempInput.value = url;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      showToast('URL copiada al portapapeles');
+    }
+
+    function eliminarProyecto(id) {
+      if (confirm('¿Estás seguro de que deseas eliminar este proyecto?')) {
+        console.log('Eliminar proyecto:', id);
+        fetch(`/eliminarproyecto/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        showToast('Proyecto eliminado correctamente');
+        window.location.reload();
+      }
+    }
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Pizarras</title>
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      height: 100vh;
+      font-family: sans-serif;
+    }
+
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #ecf0f1;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    canvas {
+      background: white;
+      border: 1px solid #ccc;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .modern-toolbar2 {
+      position: fixed;
+      right: 0;
+      top: 0;
+      height: 100%;
+      width: 160px;
+      background: #2c3e50;
+      padding: 10px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+      overflow-y: auto;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .modern-toolbar2 label {
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #ecf0f1;
+    }
+
+    .modern-toolbar2 button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #34495e;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .modern-toolbar2 button:hover {
+      background: #3d566e;
+    }
+
+    .modern-toolbar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 160px;
+      background: #2c3e50;
+      padding: 10px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+      overflow-y: auto;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .modern-toolbar label {
+      font-size: 16px;
+      margin-bottom: 10px;
+      font-weight: bold;
+      color: #ecf0f1;
+    }
+
+    .modern-toolbar button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      background: #34495e;
+      border: none;
+      color: white;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .modern-toolbar button:hover {
+      background: #3d566e;
+    }
+
+    .material-icons {
+      font-size: 18px;
+    }
+
+    /* Selector de pizarras en la parte superior */
+    .pizarra-selector {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .pizarra-selector h3 {
+      margin: 0;
+      margin-right: 15px;
+      color: #2c3e50;
+      font-size: 16px;
+    }
+
+    .pizarra-tab {
+      padding: 8px 16px;
+      border: 2px solid #34495e;
+      background: white;
+      color: #34495e;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .pizarra-tab:hover {
+      background: #ecf0f1;
+    }
+
+    .pizarra-tab.active {
+      background: #34495e;
+      color: white;
+    }
+
+    .btn-nueva-pizarra {
+      padding: 8px 16px;
+      border: 2px dashed #3498db;
+      background: white;
+      color: #3498db;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-nueva-pizarra:hover {
+      background: #3498db;
+      color: white;
+    }
+
+    /* Ocultar el selector original */
+    #canvas-selector {
+      display: none;
+    }
+
+    .textarea-container {
+      display: flex;
+      flex-direction: column;
+      max-width: 600px;
+      margin: 1em 0;
+    }
+
+    .textarea-label {
+      font-weight: bold;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    .textarea-prompt {
+      resize: vertical;
+      padding: 12px;
+      font-size: 1rem;
+      line-height: 1.5;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      font-family: inherit;
+      transition: border-color 0.3s ease;
+      min-height: 100px;
+    }
+
+    .textarea-prompt:focus {
+      outline: none;
+      border-color: #4285F4;
+      box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
+    }
+
+    /* Estilos para el modal de prompt */
+    .btn-generar-prompt {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-generar-prompt:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .modal-prompt {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(5px);
+    }
+
+    .modal-content-prompt {
+      background-color: #fefefe;
+      margin: 5% auto;
+      padding: 0;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .modal-header-prompt {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px 12px 0 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header-prompt h3 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .close-modal-prompt {
+      color: white;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.3s ease;
+    }
+
+    .close-modal-prompt:hover {
+      opacity: 0.7;
+    }
+
+    .modal-body-prompt {
+      padding: 30px;
+    }
+
+    .modal-body-prompt label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .modal-body-prompt textarea {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      transition: border-color 0.3s ease;
+      box-sizing: border-box;
+    }
+
+    .modal-body-prompt textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .modal-buttons-prompt {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+
+    .btn-cancelar {
+      background-color: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-cancelar:hover {
+      background-color: #5a6268;
+    }
+
+    .btn-enviar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-enviar:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-enviar:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .modal-content-prompt {
+        width: 95%;
+        margin: 10% auto;
+      }
+      
+      .modal-body-prompt {
+        padding: 20px;
+      }
+      
+      .modal-buttons-prompt {
+        flex-direction: column;
+      }
+    }
+  </style>
+
+</head>
+
+<!-- Modal para editar clase UML -->
+<div id="uml-modal"
+  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999; align-items:center; justify-content:center;">
+  <form id="uml-form"
+    style="background:#fff; padding:24px 20px 16px 20px; border-radius:10px; min-width:320px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px;">
+    <h2 style="margin:0 0 10px 0;">Editar Clase UML</h2>
+    <label>Nombre de la clase:
+      <input type="text" id="uml-nombre" required style="width:100%;margin-top:4px;">
+    </label>
+    <label>Atributos (uno por línea):
+      <textarea id="uml-atributos" rows="4" style="width:100%;margin-top:4px;"
+        placeholder="+ nombre: String&#10;- edad: int"></textarea>
+    </label>
+    <label>Métodos (uno por línea):
+      <textarea id="uml-metodos" rows="4" style="width:100%;margin-top:4px;"
+        placeholder="+ getNombre(): String"></textarea>
+    </label>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+      <button type="button" id="uml-cancelar"
+        style="background:#eee; border:none; padding:8px 16px; border-radius:5px;">Cancelar</button>
+      <button type="submit"
+        style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:5px;">Guardar</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal para crear asociación UML -->
+<div id="asociacion-modal"
+  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999; align-items:center; justify-content:center;">
+  <form id="asociacion-form"
+    style="background:#fff; padding:24px 20px 16px 20px; border-radius:10px; min-width:320px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px;">
+    <h2 style="margin:0 0 10px 0;">Crear Asociación UML</h2>
+    <label>Clase Origen:
+      <select id="asoc-origen" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Clase Destino:
+      <select id="asoc-destino" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Multiplicidad Origen:
+      <input type="text" id="asoc-mult-origen" placeholder="1" style="width:100%;margin-top:4px;">
+    </label>
+    <label>Multiplicidad Destino:
+      <input type="text" id="asoc-mult-destino" placeholder="*" style="width:100%;margin-top:4px;">
+    </label>
+    <label>Etiqueta (opcional):
+      <input type="text" id="asoc-label" style="width:100%;margin-top:4px;">
+    </label>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+      <button type="button" id="asoc-cancelar"
+        style="background:#eee; border:none; padding:8px 16px; border-radius:5px;">Cancelar</button>
+      <button type="submit"
+        style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:5px;">Crear</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal para relación muchos a muchos -->
+<div id="modal-muchos-a-muchos"
+  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999; align-items:center; justify-content:center;">
+  <form id="form-muchos-a-muchos"
+    style="background:#fff; padding:24px 20px 16px 20px; border-radius:10px; min-width:320px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px;">
+    <h2 style="margin:0 0 10px 0;">Crear Relación Muchos a Muchos</h2>
+    <label>Clase A:
+      <select id="mm-clase-a" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Clase B:
+      <select id="mm-clase-b" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Nombre de la clase intermedia:
+      <input type="text" id="mm-clase-intermedia" required style="width:100%;margin-top:4px;"
+        placeholder="Ejemplo: UsuarioProyecto">
+    </label>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+      <button type="button" id="mm-cancelar"
+        style="background:#eee; border:none; padding:8px 16px; border-radius:5px;">Cancelar</button>
+      <button type="submit"
+        style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:5px;">Crear</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal para relación recursiva muchos a muchos -->
+<div id="modal-recursiva-mm"
+  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999; align-items:center; justify-content:center;">
+  <form id="form-recursiva-mm"
+    style="background:#fff; padding:24px 20px 16px 20px; border-radius:10px; min-width:320px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px;">
+    <h2 style="margin:0 0 10px 0;">Crear Relación Recursiva Muchos a Muchos</h2>
+    <label>Clase:
+      <select id="rec-mm-clase" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Nombre de la clase intermedia:
+      <input type="text" id="rec-mm-clase-intermedia" required style="width:100%;margin-top:4px;"
+        placeholder="Ejemplo: PersonaConocido">
+    </label>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+      <button type="button" id="rec-mm-cancelar"
+        style="background:#eee; border:none; padding:8px 16px; border-radius:5px;">Cancelar</button>
+      <button type="submit"
+        style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:5px;">Crear</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal para crear composición UML -->
+<div id="modal-composicion"
+  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999; align-items:center; justify-content:center;">
+  <form id="form-composicion"
+    style="background:#fff; padding:24px 20px 16px 20px; border-radius:10px; min-width:320px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px;">
+    <h2 style="margin:0 0 10px 0;">Crear Composición UML</h2>
+    <label>Clase Todo:
+      <select id="comp-todo" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Clase Parte:
+      <select id="comp-parte" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Etiqueta (opcional):
+      <input type="text" id="comp-label" style="width:100%;margin-top:4px;" placeholder="Ejemplo: compone">
+    </label>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+      <button type="button" id="comp-cancelar"
+        style="background:#eee; border:none; padding:8px 16px; border-radius:5px;">Cancelar</button>
+      <button type="submit"
+        style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:5px;">Crear</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal para crear agregación UML -->
+<div id="modal-agregacion"
+  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999; align-items:center; justify-content:center;">
+  <form id="form-agregacion"
+    style="background:#fff; padding:24px 20px 16px 20px; border-radius:10px; min-width:320px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px;">
+    <h2 style="margin:0 0 10px 0;">Crear Agregación UML</h2>
+    <label>Clase Todo:
+      <select id="agreg-todo" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Clase Parte:
+      <select id="agreg-parte" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Etiqueta (opcional):
+      <input type="text" id="agreg-label" style="width:100%;margin-top:4px;" placeholder="Ejemplo: agrega">
+    </label>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+      <button type="button" id="agreg-cancelar"
+        style="background:#eee; border:none; padding:8px 16px; border-radius:5px;">Cancelar</button>
+      <button type="submit"
+        style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:5px;">Crear</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modal para crear Generalizacion UML -->
+<div id="modal-generalizacion"
+  style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.3); z-index:9999; align-items:center; justify-content:center;">
+  <form id="form-generalizacion"
+    style="background:#fff; padding:24px 20px 16px 20px; border-radius:10px; min-width:320px; max-width:90vw; box-shadow:0 8px 32px rgba(0,0,0,0.2); display:flex; flex-direction:column; gap:12px;">
+    <h2 style="margin:0 0 10px 0;">Crear Generalizacion UML</h2>
+    <label>Clase Todo:
+      <select id="gener-todo" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Clase Parte:
+      <select id="gener-parte" required style="width:100%;margin-top:4px;"></select>
+    </label>
+    <label>Etiqueta (opcional):
+      <input type="text" id="gener-label" style="width:100%;margin-top:4px;" placeholder="Ejemplo: agrega">
+    </label>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:8px;">
+      <button type="button" id="gener-cancelar"
+        style="background:#eee; border:none; padding:8px 16px; border-radius:5px;">Cancelar</button>
+      <button type="submit"
+        style="background:#6366f1; color:#fff; border:none; padding:8px 16px; border-radius:5px;">Crear</button>
+    </div>
+  </form>
+</div>
+
+<body>
+
+  <div class="modern-toolbar">
+    <label>UML</label>
+
+    <button onclick="addElement('Class')"><span class="material-icons">title</span><span>Class</span></button>
+    <button onclick="mostrarModalAsociacion()"><span
+        class="material-icons">share</span><span>Association</span></button>
+    <button onclick="mostrarModalMuchosAMuchos()"><span class="material-icons">join_full</span><span>Association
+        *</span></button>
+    <button onclick="mostrarModalRecursivaMuchosAMuchos()"><span class="material-icons">loop</span><span>Recursiva
+        Muchos a Muchos</span></button>
+
+    <button onclick="mostrarModalComposicion()"><span
+        class="material-icons">category</span><span>Composición</span></button>
+    <button onclick="mostrarModalAgregacion()"><span
+        class="material-icons">call_merge</span><span>Agregación</span></button>
+
+    <button onclick="mostrarModalGeneralizacion()"><span
+        class="material-icons">tune</span><span>Generalization</span></button>
+    <label></label>
+
+  </div>
+
+  <!-- Pizarra -->
+  <div class="canvas-container">
+    <!-- Selector de pizarras -->
+    <!--
+    <h1>id: <%= proyect[0].id %></h1>
+    <h1>Proyecto: <%= proyect[0].nombre %></h1>
+    <h2>Creador: <%= proyect[0].creador_id %></h2>-->
+
+    <div id="pizarras" ontouchstart="mostrarPizarra(0)">
+      <canvas class="pizarra" width="950" height="600"></canvas>
+    </div>
+
+  </div>
+
+
+  <div class="modern-toolbar2">
+    <label>Funcionalidades</label>
+
+    <!--<h3>Guardar Proyecto</h3>
+    <button onclick="guardarCanvas()"><span class="material-icons">save</span><span>Guardar Proyecto</span></button>
+    -->
+    <h4>Exportar Pizarra</h4>
+    <button onclick="descargarPizarraActual()"><span class="material-icons">download</span><span>Descargar
+        PNG</span></button>
+    <!--<button onclick="descargarTodasLasPizarras()"><span
+        class="material-icons">download_for_offline</span><span>Descargar Todas</span></button>
+ -->
+    <h4>Exportar Código</h4>
+    <button id="btn-exportar-codigo"><span class="material-icons">code</span><span>Generar Código</span></button>
+    <button onclick="generarScriptSQL()"><span class="material-icons">storage</span><span>Generar SQL</span></button>
+
+    <!-- Parte del boceto -- 2° Entrada. Atraves de una imagen generar en la pizarra el diseño con los widgets-->
+    <h4>Generar desde Boceto</h4>
+    <input type="file" id="inputImagen" accept="image/*" style="display:none;">
+    <button id="btnCargar"><span class="material-icons">image</span><span>Cargar Imagen</span></button>
+
+    <!-- Vista previa opcional -->
+    <img id="preview" src="" alt="Vista previa" style="margin-top:10px; max-width:100%; display:none;">
+
+    <!-- Parte para el Promt -- 3° Entrada. Atrves de promt generar en la pizarra el diseño con los widgets -->
+    <!--<div class="textarea-container">
+      <h4>Escribe el Prompt</h4>
+      <label for="prompt" class="textarea-label">Prompt</label>
+      <textarea id="prompt" class="textarea-prompt" placeholder="Escribe aquí el prompt..."></textarea>
+    </div>
+    <button id="btnGenerar">Generar</button>
+    <label></label>-->
+
+
+    <!-- Botón para abrir modal de prompt -->
+    <div style="margin: 20px 0;">
+      <button id="btnAbrirModalPrompt" class="btn-generar-prompt">
+         Generar con IA (Prompt)
+      </button>
+    </div>
+
+    <!-- Modal para el prompt -->
+    <div id="modalPrompt" class="modal-prompt">
+      <div class="modal-content-prompt">
+        <div class="modal-header-prompt">
+          <h3>Generar Diagrama UML con IA</h3>
+          <span class="close-modal-prompt">&times;</span>
+        </div>
+        <div class="modal-body-prompt">
+          <form id="form-gemini-uml" onsubmit="enviarPromptGemini(event)">
+            <label for="prompt-gemini">Escribe tu prompt:</label><br>
+            <div style="position: relative;">
+              <textarea id="prompt-gemini" rows="6" 
+                placeholder="Escriba el prompt para generar el diagrama de clases UML o use el micrófono para grabar audio"></textarea>
+              <button type="button" id="btn-microfono" 
+                style="position: absolute; top: 5px; right: 5px; background: #6366f1; color: white; border: none; border-radius: 50%; width: 35px; height: 35px; cursor: pointer; font-size: 16px;"
+                title="Grabar audio">
+                🎤
+              </button>
+            </div>
+            <div id="estado-grabacion" style="margin: 10px 0; padding: 10px; background: #e3f2fd; border-radius: 5px; display: none;">
+              <span id="texto-estado">🎤 Grabando audio... Habla ahora</span>
+              <button type="button" id="btn-detener" style="margin-left: 10px; background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 3px;">Detener y Procesar</button>
+            </div>
+            <div id="estado-procesamiento" style="margin: 10px 0; padding: 10px; background: #fff3cd; border-radius: 5px; display: none;">
+              <span id="texto-procesamiento">🔄 Procesando audio y generando diagrama...</span>
+            </div>
+            <div class="modal-buttons-prompt">
+              <button type="button" id="btnCancelarPrompt" class="btn-cancelar">Cancelar</button>
+              <button type="submit" id="btnEnviarPrompt" class="btn-enviar">Generar Diagrama</button>
+              
+            </div>
+          </form>
+          <pre id="resultado-gemini" style="background:#f5f5f5; padding:10px; margin-top:10px; display:none;"></pre>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <script>
+    const inputImagen = document.getElementById('inputImagen');
+    const btnCargar = document.getElementById('btnCargar');
+    const preview = document.getElementById('preview');
+
+    btnCargar.addEventListener('click', () => {
+      inputImagen.click(); // simula clic en input tipo file
+    });
+
+    inputImagen.addEventListener('change', async (event) => {
+      const file = event.target.files[0];
+      if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+
+        // Procesar imagen con la red neuronal
+        await procesarImagenConIA(file);
+      } else {
+        alert('Por favor selecciona un archivo de imagen válido.');
+      }
+    });
+
+    // Función para procesar imagen con IA
+    async function procesarImagenConIA(file) {
+      try {
+        mostrarNotificacion('🔄 Analizando imagen con IA...', 'info');
+
+        const formData = new FormData();
+        formData.append('imagen', file);
+
+        const response = await fetch('/procesar-imagen', {
+          method: 'POST',
+          body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.elementos.length > 0) {
+          // Agregar elementos detectados a la pizarra actual
+          if (!elementosPorPizarra[pizarraActual]) {
+            elementosPorPizarra[pizarraActual] = [];
+          }
+
+          result.elementos.forEach(elemento => {
+            elementosPorPizarra[pizarraActual].push(elemento);
+          });
+
+          render();
+          emitUI();
+
+          mostrarNotificacion(`✅ Se detectaron ${result.elementos.length} elementos UI`, 'success');
+        } else if (result.elementos && result.elementos.length === 0) {
+          mostrarNotificacion('ℹ️ No se detectaron elementos UI en la imagen', 'info');
+        } else {
+          mostrarNotificacion(`❌ Error: ${result.error}`, 'error');
+        }
+      } catch (error) {
+        console.error('Error al procesar imagen:', error);
+        mostrarNotificacion('❌ Error al conectar con el servidor', 'error');
+      }
+    }
+
+    // Funcionalidad del modal de prompt
+    const modalPrompt = document.getElementById('modalPrompt');
+    const btnAbrirModalPrompt = document.getElementById('btnAbrirModalPrompt');
+    const btnCancelarPrompt = document.getElementById('btnCancelarPrompt');
+    const closeModalPrompt = document.querySelector('.close-modal-prompt');
+
+    // Abrir modal
+    btnAbrirModalPrompt.addEventListener('click', () => {
+      modalPrompt.style.display = 'block';
+      document.getElementById('prompt-gemini').focus();
+    });
+
+    // Cerrar modal con botón X
+    closeModalPrompt.addEventListener('click', () => {
+      modalPrompt.style.display = 'none';
+    });
+
+    // Cerrar modal con botón Cancelar
+    btnCancelarPrompt.addEventListener('click', () => {
+      modalPrompt.style.display = 'none';
+    });
+
+    // Funcionalidad de reconocimiento de voz invisible
+    const btnMicrofono = document.getElementById('btn-microfono');
+    const estadoGrabacion = document.getElementById('estado-grabacion');
+    const estadoProcesamiento = document.getElementById('estado-procesamiento');
+    const textoEstado = document.getElementById('texto-estado');
+    const textoProcesamiento = document.getElementById('texto-procesamiento');
+    const btnDetener = document.getElementById('btn-detener');
+    const promptTextarea = document.getElementById('prompt-gemini');
+
+    let recognition = null;
+    let isRecording = false;
+    let audioTranscript = ''; // Almacena el texto del audio
+
+    // Verificar soporte del navegador
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition = new SpeechRecognition();
+      
+      recognition.continuous = true;
+      recognition.interimResults = false; // Solo resultados finales
+      recognition.lang = 'es-ES'; // Español
+
+      // Eventos del reconocimiento
+      recognition.onstart = () => {
+        isRecording = true;
+        audioTranscript = ''; // Limpiar transcript anterior
+        estadoGrabacion.style.display = 'block';
+        estadoProcesamiento.style.display = 'none';
+        textoEstado.textContent = '🎤 Grabando audio... Habla ahora';
+        btnMicrofono.style.background = '#dc3545';
+        btnMicrofono.textContent = '🔴';
+        btnMicrofono.disabled = true;
+      };
+
+      recognition.onresult = (event) => {
+        // Solo acumular resultados finales, no mostrar nada
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          if (event.results[i].isFinal) {
+            audioTranscript += event.results[i][0].transcript + ' ';
+          }
+        }
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Error en reconocimiento:', event.error);
+        textoEstado.textContent = `❌ Error: ${event.error}`;
+        stopRecording();
+      };
+
+      recognition.onend = () => {
+        if (isRecording) {
+          // Si termina automáticamente, procesar el audio
+          processAudioTranscript();
+        }
+      };
+
+      // Función para iniciar grabación
+      function startRecording() {
+        if (!isRecording) {
+          recognition.start();
+        }
+      }
+
+      // Función para detener grabación y procesar
+      function stopRecording() {
+        if (isRecording) {
+          recognition.stop();
+          processAudioTranscript();
+        }
+      }
+
+      // Función para procesar el transcript del audio
+      async function processAudioTranscript() {
+        isRecording = false;
+        estadoGrabacion.style.display = 'none';
+        estadoProcesamiento.style.display = 'block';
+        btnMicrofono.style.background = '#6366f1';
+        btnMicrofono.textContent = '🎤';
+        btnMicrofono.disabled = false;
+
+        if (audioTranscript.trim()) {
+          textoProcesamiento.textContent = '🔄 Procesando audio y generando diagrama...';
+          
+          try {
+            // Enviar directamente a Gemini sin mostrar el texto
+            const response = await fetch('http://127.0.0.1:5000/generate_uml_diagram', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ prompt: audioTranscript.trim() })
+            });
+            
+            const text = await response.text();
+            const data = JSON.parse(text);
+
+            if (data.error) {
+              textoProcesamiento.textContent = `❌ Error: ${data.error}`;
+            } else {
+              textoProcesamiento.textContent = '✅ Diagrama generado desde audio';
+              
+              // Procesar elementos UML como en la función original
+              let elementosUML = [];
+              if (data.elementos && Array.isArray(data.elementos)) {
+                data.elementos.forEach(elemento => {
+                  elementosUML.push(elemento);
+                });
+              }
+
+              // Agregar elementos a la pizarra actual
+              if (typeof pizarraActual === 'undefined') pizarraActual = 0;
+              if (!elementosPorPizarra[pizarraActual]) elementosPorPizarra[pizarraActual] = [];
+
+              elementosUML.forEach(elemento => {
+                elementosPorPizarra[pizarraActual].push(elemento);
+              });
+
+              // Redibuja la pizarra actual
+              render();
+              
+              // Cerrar el modal después de un momento
+              setTimeout(() => {
+                modalPrompt.style.display = 'none';
+                estadoProcesamiento.style.display = 'none';
+              }, 2000);
+            }
+          } catch (error) {
+            console.error('Error al procesar audio:', error);
+            textoProcesamiento.textContent = '❌ Error al procesar el audio';
+          }
+        } else {
+          textoProcesamiento.textContent = '❌ No se detectó audio válido';
+          setTimeout(() => {
+            estadoProcesamiento.style.display = 'none';
+          }, 2000);
+        }
+      }
+
+      // Event listeners
+      btnMicrofono.addEventListener('click', startRecording);
+      btnDetener.addEventListener('click', stopRecording);
+
+    } else {
+      // Navegador no soporta reconocimiento de voz
+      btnMicrofono.style.display = 'none';
+      console.warn('Reconocimiento de voz no soportado en este navegador');
+    }
+
+    // Cerrar modal al hacer clic fuera de él
+    window.addEventListener('click', (event) => {
+      if (event.target === modalPrompt) {
+        modalPrompt.style.display = 'none';
+      }
+    });
+
+    // Cerrar modal con tecla Escape
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && modalPrompt.style.display === 'block') {
+        modalPrompt.style.display = 'none';
+      }
+    });
+
+  </script>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    // Definir el ID del proyecto como variable global
+    window.id = '<%= proyect[0].id %>';
+    // Definir el nombre del proyecto para las descargas
+    window.proyectoNombre = '<%= proyect[0].nombre %>';
+  </script>
+  <script src="/script.js"></script>
+</body>
+
+</html>

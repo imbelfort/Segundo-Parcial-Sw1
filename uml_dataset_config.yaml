@@ -1,0 +1,44 @@
+# Configuración del dataset UML para entrenamiento YOLO
+# Archivo: uml_dataset_config.yaml
+
+# Ruta del dataset
+path: ./uml_dataset
+train: images/train
+val: images/val
+test: images/test
+
+# Número de clases
+nc: 10
+
+# Nombres de las clases (en orden)
+names:
+  0: Class
+  1: Association
+  2: Dependency
+  3: Aggregation
+  4: Composition
+  5: Generalization
+  6: RecursiveRelation
+  7: ManyToManyRelation
+  8: Attribute
+  9: Method
+
+# Configuración adicional
+# Tamaño de imagen para entrenamiento
+imgsz: 640
+
+# Configuración de aumentos de datos
+augment: true
+hsv_h: 0.015
+hsv_s: 0.7
+hsv_v: 0.4
+degrees: 0.0
+translate: 0.1
+scale: 0.5
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+mosaic: 1.0
+mixup: 0.0
+copy_paste: 0.0

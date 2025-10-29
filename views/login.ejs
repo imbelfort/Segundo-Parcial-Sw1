@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diseño Colaborativo - Acceso</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Font Awesome -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  
+  <style>
+    :root {
+      --primary-color: #6366f1;
+      --text-color: #1f2937;
+      --text-light: #6b7280;
+      --border-color: #e5e7eb;
+      --background-color: #f8f9fa;
+      --error-color: #ef4444;
+      --success-color: #10b981;
+      --radius: 12px;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+      --transition: all 0.2s ease;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 2rem;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .logo i {
+      font-size: 2.5rem;
+      color: var(--primary-color);
+    }
+
+    .logo h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 1rem;
+      cursor: pointer;
+      color: var(--text-light);
+      font-weight: 500;
+      transition: var(--transition);
+    }
+
+    .tab.active {
+      color: var(--primary-color);
+      border-bottom: 2px solid var(--primary-color);
+      margin-bottom: -2px;
+    }
+
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: var(--text-color);
+      font-weight: 500;
+    }
+
+    .input-group {
+      position: relative;
+    }
+
+    .input-group i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-light);
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      font-size: 1rem;
+      transition: var(--transition);
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    button {
+      width: 100%;
+      padding: 0.75rem;
+      background: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .form-section {
+      display: none;
+    }
+
+    .form-section.active {
+      display: block;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: white;
+      color: var(--text-color);
+      padding: 1rem 1.5rem;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      display: none;
+      align-items: center;
+      gap: 0.75rem;
+      border: 1px solid var(--border-color);
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.success {
+      border-left: 4px solid var(--success-color);
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--error-color);
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <i class="fas fa-paint-brush"></i>
+      <h1>Diseño Colaborativo</h1>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('login')">Iniciar Sesión</div>
+      <div class="tab" onclick="switchTab('register')">Registrarse</div>
+    </div>
+
+    <div id="login-form" class="form-section active">
+      <div class="form-group">
+        <label for="login-email">Correo electrónico</label>
+        <div class="input-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="login-email" placeholder="tu@email.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="login-pass">Contraseña</label>
+        <div class="input-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="login-pass" placeholder="••••••••">
+        </div>
+      </div>
+      <button onclick="login()">Iniciar Sesión</button>
+    </div>
+
+    <div id="register-form" class="form-section">
+      <div class="form-group">
+        <label for="reg-email">Correo electrónico</label>
+        <div class="input-group">
+          <i class="fas fa-envelope"></i>
+          <input type="email" id="reg-email" placeholder="tu@email.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="reg-pass">Contraseña</label>
+        <div class="input-group">
+          <i class="fas fa-lock"></i>
+          <input type="password" id="reg-pass" placeholder="••••••••">
+        </div>
+      </div>
+      <button onclick="registrar()">Crear Cuenta</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <i class="fas fa-info-circle"></i>
+    <span id="toast-message"></span>
+  </div>
+
+  <script>
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toast-message');
+      toast.className = `toast ${type}`;
+      toastMessage.textContent = message;
+      toast.style.display = 'flex';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3000);
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+      
+      document.querySelector(`.tab[onclick="switchTab('${tab}')"]`).classList.add('active');
+      document.getElementById(`${tab}-form`).classList.add('active');
+    }
+
+    async function registrar() {
+      const email = document.getElementById('reg-email').value;
+      const pass = document.getElementById('reg-pass').value;
+
+      if (!email || !pass) {
+        showToast('Por favor completa todos los campos', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/registro', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass })
+        });
+
+        if (res.ok) {
+          showToast('Registro exitoso. Ahora puedes iniciar sesión.');
+          switchTab('login');
+        } else {
+          showToast('Error al registrar. Intenta con otro correo.', 'error');
+        }
+      } catch (error) {
+        showToast('Error al conectar con el servidor', 'error');
+      }
+    }
+
+    async function login() {
+      const email = document.getElementById('login-email').value;
+      const pass = document.getElementById('login-pass').value;
+
+      if (!email || !pass) {
+        showToast('Por favor completa todos los campos', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pass })
+        });
+
+        if (res.ok) {
+          window.location.href = '/proyectos';
+        } else {
+          showToast('Credenciales incorrectas', 'error');
+        }
+      } catch (error) {
+        showToast('Error al conectar con el servidor', 'error');
+      }
+    }
+  </script>
+</body>
+</html>
