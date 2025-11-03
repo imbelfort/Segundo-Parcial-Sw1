@@ -1,4 +1,5 @@
 // server.js
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcrypt');
@@ -11,9 +12,13 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const Groq = require("groq-sdk");
 
+
 const app = express();
+app.use(express.json()); // For parsing application/json
+app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 const server = http.createServer(app);
 const io = new Server(server);
+
 /*
 const db = new Pool({
   connectionString: 'postgres://usuario:password@localhost:5432/tu_basededatos'
@@ -653,7 +658,7 @@ app.post('/procesar-comando-ia', async (req, res) => {
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
       ],
-      model: "mixtral-8x7b-32768",
+      model: "llama-3.1-70b-versatile",
       temperature: 0.3,
       max_tokens: 4000
     });

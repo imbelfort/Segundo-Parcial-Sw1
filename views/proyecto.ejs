@@ -938,12 +938,226 @@
 
   </script>
 
+  <!-- AI Panel -->
+  <div id="ia-panel" class="ia-panel">
+    <div class="ia-header">
+      <h3>Asistente de IA</h3>
+      <button id="ia-toggle" class="ia-toggle">-</button>
+    </div>
+    <div id="ia-chat" class="ia-chat">
+      <div class="ia-message ia-assistant">
+        ¡Hola! Soy tu asistente de IA. Puedo ayudarte a modificar tu diagrama UML.
+      </div>
+    </div>
+    <div class="ia-input-container">
+      <textarea id="ia-input" placeholder="Escribe aquí lo que quieres modificar en el diagrama..." rows="3"></textarea>
+      <button id="ia-send">Enviar</button>
+    </div>
+  </div>
+
+  <!-- AI Toggle Button (Floating Action Button) -->
+  <button id="ia-fab" class="ia-fab" title="Asistente de IA">
+    <i class="material-icons">smart_toy</i>
+  </button>
+
   <script src="/socket.io/socket.io.js"></script>
   <script>
     // Definir el ID del proyecto como variable global
-    window.id = '<%= proyect[0].id %>';
+    window.id = '<%= proyect_id %>';
     // Definir el nombre del proyecto para las descargas
-    window.proyectoNombre = '<%= proyect[0].nombre %>';
+    window.proyectoNombre = '<%= proyect[0] ? proyect[0].nombre : "Proyecto" %>';
+    
+    // Function to get current diagram elements
+    function obtenerElementosActuales() {
+      return {
+        elementos: window.elementos || [],
+        relaciones: window.obtenerRelaciones ? window.obtenerRelaciones() : []
+      };
+    }
+
+    // Function to apply AI-suggested changes
+    function aplicarCambiosIA(cambios) {
+      if (!window.elementos) {
+        console.error('No se pudo acceder a los elementos del diagrama');
+        return;
+      }
+
+      // Apply additions
+      if (cambios.agregar && Array.isArray(cambios.agregar)) {
+        cambios.agregar.forEach(elemento => {
+          if (!elemento.id) {
+            elemento.id = 'elem-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+          }
+          // Agregar el elemento al diagrama
+          window.agregarElemento(elemento);
+        });
+      }
+      
+      // Apply updates
+      if (cambios.actualizar && Array.isArray(cambios.actualizar)) {
+        cambios.actualizar.forEach(actualizacion => {
+          const elemento = window.elementos.find(e => e.id === actualizacion.id);
+          if (elemento) {
+            Object.assign(elemento, actualizacion.cambios);
+            // Actualizar la vista del elemento
+            window.actualizarElemento(elemento);
+          }
+        });
+      }
+      
+      // Apply deletions
+      if (cambios.eliminar && Array.isArray(cambios.eliminar)) {
+        cambios.eliminar.forEach(id => {
+          window.eliminarElemento(id);
+        });
+      }
+      
+      // Guardar cambios
+      window.guardarCambios();
+    }
+  </script>
+  
+  <!-- Incluir el script del panel de IA -->
+  <script src="/js/ia-panel.js"></script>
+  
+  <script>
+    // Inicializar el panel de IA cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', () => {
+      // Configurar el envío de mensajes
+      const iaInput = document.getElementById('ia-input');
+      const iaSendButton = document.getElementById('ia-send');
+      const iaChat = document.getElementById('ia-chat'); // Add reference to chat container
+      
+      if (iaSendButton && iaInput) {
+        iaSendButton.addEventListener('click', sendMessage);
+        
+        iaInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+      }
+      
+      async function sendMessage() {
+        const message = iaInput.value.trim();
+        if (!message) return;
+
+        // Agregar mensaje del usuario al chat
+        addMessage('user', message);
+        iaInput.value = '';
+        
+        // Mostrar indicador de escritura
+        const typingIndicator = addMessage('assistant', '', true);
+        
+        try {
+          // Obtener el estado actual del diagrama
+          const elementos = obtenerElementosActuales();
+          
+          // Send to server
+          const response = await fetch('/procesar-comando-ia', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              comando: message,
+              elementos: elementos
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Error al procesar el comando');
+          }
+          
+          const data = await response.json();
+          
+          // Apply changes to the diagram
+          if (data.cambios) {
+            aplicarCambiosIA(data.cambios);
+          }
+          
+          // Update chat
+          updateMessage(typingIndicator, 'assistant', data.respuesta || 'Cambios aplicados correctamente');
+          
+        } catch (error) {
+          console.error('Error:', error);
+          updateMessage(typingIndicator, 'assistant', `Lo siento, hubo un error: ${error.message}`);
+        }
+      }
+
+      function addMessage(role, content, isTyping = false) {
+        if (!iaChat) {
+          console.error('No se pudo encontrar el contenedor del chat');
+          return null;
+        }
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `ia-message ia-${role}${isTyping ? ' typing-indicator' : ''}`;
+        messageDiv.textContent = content;
+        iaChat.appendChild(messageDiv);
+        iaChat.scrollTop = iaChat.scrollHeight;
+        return messageDiv;
+      }
+
+      function updateMessage(element, role, content) {
+        if (!element) return;
+        element.className = `ia-message ia-${role}`;
+        element.textContent = content;
+        if (iaChat) {
+          iaChat.scrollTop = iaChat.scrollHeight;
+        }
+      }
+
+      // Function to get current diagram elements
+      function obtenerElementosActuales() {
+        return {
+          elementos: window.elementos || [],
+          relaciones: window.obtenerRelaciones ? window.obtenerRelaciones() : []
+        };
+      }
+
+      // Function to apply AI-suggested changes
+      function aplicarCambiosIA(cambios) {
+        if (!window.elementos) {
+          console.error('No se pudo acceder a los elementos del diagrama');
+          return;
+        }
+
+        // Apply additions
+        if (cambios.agregar && Array.isArray(cambios.agregar)) {
+          cambios.agregar.forEach(elemento => {
+            if (!elemento.id) {
+              elemento.id = 'elem-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+            }
+            window.elementos.push(elemento);
+          });
+        }
+        
+        // Apply updates
+        if (cambios.actualizar && Array.isArray(cambios.actualizar)) {
+          cambios.actualizar.forEach(update => {
+            const index = window.elementos.findIndex(e => e.id === update.id);
+            if (index !== -1) {
+              window.elementos[index] = { ...window.elementos[index], ...update.campos };
+            }
+          });
+        }
+        
+        // Apply deletions
+        if (cambios.eliminar && Array.isArray(cambios.eliminar)) {
+          window.elementos = window.elementos.filter(e => !cambios.eliminar.includes(e.id));
+        }
+        
+        // Redraw the canvas if the function exists
+        if (window.dibujarCanvas) {
+          window.dibujarCanvas();
+        }
+        
+        // Save changes if the function exists
+        if (window.guardarCambios) {
+          window.guardarCambios();
+        }
+      }
+    });
   </script>
   <script src="/script.js"></script>
 </body>
