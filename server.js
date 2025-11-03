@@ -9,6 +9,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const Groq = require("groq-sdk");
 
 const app = express();
 const server = http.createServer(app);
@@ -615,6 +616,71 @@ app.post('/generar-sql', async (req, res) => {
   } catch (error) {
     console.error('Error al generar SQL:', error);
     res.status(500).json({ error: 'Error interno al generar el script SQL' });
+  }
+});
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
+
+// Reemplaza el endpoint existente por este:
+app.post('/procesar-comando-ia', async (req, res) => {
+  try {
+    const { comando, elementos } = req.body;
+    
+    const systemPrompt = `Eres un asistente que ayuda a modificar diagramas UML. 
+    El usuario te dará instrucciones en lenguaje natural y tú debes devolver un JSON con los cambios a realizar.
+    
+    Formato de respuesta esperado:
+    {
+      "respuesta": "Mensaje de confirmación para el usuario",
+      "cambios": {
+        "agregar": [/* nuevos elementos */],
+        "actualizar": [/* {id, campos} */],
+        "eliminar": [/* ids de elementos a eliminar */]
+      }
+    }`;
+    
+    const userPrompt = `Elementos actuales del diagrama: ${JSON.stringify(elementos, null, 2)}
+    
+    Instrucción del usuario: "${comando}"
+    
+    Por favor, genera un JSON con los cambios necesarios. Responde ÚNICAMENTE con el JSON.`;
+    
+    // Llamar a la API de Groq
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ],
+      model: "mixtral-8x7b-32768",
+      temperature: 0.3,
+      max_tokens: 4000
+    });
+    
+    // Obtener la respuesta
+    const respuesta = chatCompletion.choices[0]?.message?.content;
+    let respuestaJson;
+    
+    try {
+      // Extraer el JSON de la respuesta
+      const jsonMatch = respuesta.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('No se encontró un JSON válido en la respuesta');
+      
+      respuestaJson = JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error('Error al parsear la respuesta de la IA:', error);
+      throw new Error('Error al procesar la respuesta de la IA');
+    }
+    
+    res.json(respuestaJson);
+    
+  } catch (error) {
+    console.error('Error en /procesar-comando-ia:', error);
+    res.status(500).json({
+      respuesta: `Lo siento, hubo un error al procesar tu solicitud: ${error.message}`,
+      cambios: null
+    });
   }
 });
 
