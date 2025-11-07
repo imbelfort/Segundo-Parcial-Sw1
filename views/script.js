@@ -506,6 +506,94 @@ function agregarNuevaPizarra() {
     dibujarCuadricula(nueva);
 }
 
+// Función para cargar y procesar imagen de diagrama UML
+function cargarImagen(event, pizarraIndex) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('imagen', file);
+
+    // Mostrar indicador de carga
+    const loadingIndicator = document.createElement('div');
+    loadingIndicator.style.position = 'fixed';
+    loadingIndicator.style.top = '50%';
+    loadingIndicator.style.left = '50%';
+    loadingIndicator.style.transform = 'translate(-50%, -50%)';
+    loadingIndicator.style.padding = '20px';
+    loadingIndicator.style.background = 'rgba(0, 0, 0, 0.8)';
+    loadingIndicator.style.color = 'white';
+    loadingIndicator.style.borderRadius = '5px';
+    loadingIndicator.style.zIndex = '1000';
+    loadingIndicator.textContent = 'Procesando diagrama UML...';
+    document.body.appendChild(loadingIndicator);
+
+    fetch('/procesar-imagen', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                throw new Error(err.error || `HTTP error! status: ${response.status}`);
+            }).catch(() => {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.error) {
+            throw new Error(data.error);
+        }
+        
+        // Limpiar elementos existentes en la pizarra actual
+        elementosPorPizarra[pizarraIndex] = [];
+        
+        // Procesar los elementos detectados
+        data.elementos.forEach(elemento => {
+            const nuevoElemento = {
+                tipo: elemento.class.toLowerCase(),
+                x: elemento.x,
+                y: elemento.y,
+                w: elemento.w,
+                h: elemento.h,
+                texto: elemento.class,
+                id: Date.now() + Math.random().toString(36).substr(2, 9)
+            };
+            
+            // Ajustar propiedades según el tipo de elemento
+            switch(elemento.class.toLowerCase()) {
+                case 'class':
+                    nuevoElemento.atributos = ['+ atributo1: string', '- atributo2: int'];
+                    nuevoElemento.metodos = ['+ metodo1()', '+ metodo2()'];
+                    break;
+                case 'interface':
+                    nuevoElemento.metodos = ['+ metodo1()', '+ metodo2()'];
+                    break;
+                // Agregar más casos según sea necesario para otros tipos de elementos UML
+            }
+            
+            elementosPorPizarra[pizarraIndex].push(nuevoElemento);
+        });
+        
+        render();
+        emitUI();
+    })
+    .catch(error => {
+        console.error('Error al procesar la imagen:', error);
+        alert('Error al procesar el diagrama UML: ' + error.message);
+    })
+    .finally(() => {
+        // Limpiar el input de archivo
+        event.target.value = '';
+        // Eliminar indicador de carga
+        if (document.body.contains(loadingIndicator)) {
+            document.body.removeChild(loadingIndicator);
+        }
+    });
+}
+
 // Extensión para CanvasRenderingContext2D: rectángulo redondeado
 CanvasRenderingContext2D.prototype.roundRect = function (x, y, width, height, radius) {
     if (typeof radius === 'number') {
