@@ -7,9 +7,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional; // <--- AÑADIR IMPORT
 
 @RestController
-@RequestMapping("/api/{{ camel_case_name }}") // ej. /api/customers
+@RequestMapping("/api/{{ camel_case_name }}") // (Quitamos la 's' extra)
 public class {{ entity.name }}Controller {
 
     @Autowired
@@ -30,5 +31,38 @@ public class {{ entity.name }}Controller {
     @PostMapping
     public {{ entity.name }} create(@RequestBody {{ entity.name }} {{ camel_case_name }}) {
         return {{ camel_case_name }}Repository.save({{ camel_case_name }});
+    }
+
+    // --- AÑADIR MÉTODO UPDATE (PUT) ---
+    @PutMapping("/{id}")
+    public ResponseEntity<{{ entity.name }}> update(
+            @PathVariable Long id, 
+            @RequestBody {{ entity.name }} entityDetails) {
+        
+        Optional<{{ entity.name }}> optionalEntity = {{ camel_case_name }}Repository.findById(id);
+        if (!optionalEntity.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        {{ entity.name }} existingEntity = optionalEntity.get();
+        
+        // Copiar propiedades (asumiendo que los atributos se mapean)
+        // (Nota: esto es simplificado, en un caso real se usarían DTOs)
+        {% for attr in entity.attributes %}
+        existingEntity.set{{ attr.name | capitalize }}(entityDetails.get{{ attr.name | capitalize }}());
+        {% endfor %}
+
+        final {{ entity.name }} updatedEntity = {{ camel_case_name }}Repository.save(existingEntity);
+        return ResponseEntity.ok(updatedEntity);
+    }
+
+    // --- AÑADIR MÉTODO DELETE ---
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        if (!{{ camel_case_name }}Repository.existsById(id)) {
+            return ResponseEntity.notFound().build();
+        }
+        {{ camel_case_name }}Repository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

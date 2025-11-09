@@ -1,0 +1,227 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert'; // Para jsonEncode y jsonDecode
+
+// NOTA: Usa 'http://10.0.2.2:8080' para emuladores Android.
+// Usa 'http://localhost:8080' para iOS o web.
+const String baseUrl = 'http://10.0.2.2:8080/api/{{ main_entity.camel_case_name }}';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter CRUD - {{ main_entity.name }}',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+      ),
+      home: const CrudScreen(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class CrudScreen extends StatefulWidget {
+  const CrudScreen({super.key});
+
+  @override
+  State<CrudScreen> createState() => _CrudScreenState();
+}
+
+class _CrudScreenState extends State<CrudScreen> {
+  List<Map<String, dynamic>> _items = [];
+  bool _isLoading = true;
+
+  // Controladores generados desde los atributos
+  {% for attr in main_entity.attributes %}
+  final TextEditingController _{{ attr.name }}Controller = TextEditingController();
+  {% endfor %}
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchItems();
+  }
+
+  // --- R: READ (Leer) ---
+  Future<void> _fetchItems() async {
+    setState(() { _isLoading = true; });
+    try {
+      final response = await http.get(Uri.parse(baseUrl));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          _items = List<Map<String, dynamic>>.from(data);
+          _isLoading = false;
+        });
+      } else {
+        _showError('Error al cargar datos: ${response.statusCode}');
+      }
+    } catch (e) {
+      _showError('Error de red: $e');
+    } finally {
+      setState(() { _isLoading = false; });
+    }
+  }
+
+  // --- C/U: CREATE / UPDATE (Mostrar Formulario) ---
+  void _showForm([Map<String, dynamic>? item]) {
+    final bool isCreating = item == null;
+
+    if (!isCreating) {
+      // Rellenar campos para editar
+      {% for attr in main_entity.attributes %}
+      _{{ attr.name }}Controller.text = item?['{{ attr.name }}']?.toString() ?? '';
+      {% endfor %}
+    } else {
+      // Limpiar campos para crear
+      {% for attr in main_entity.attributes %}
+      _{{ attr.name }}Controller.clear();
+      {% endfor %}
+    }
+
+    showModalBottomSheet(
+      context: context,
+      elevation: 5,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        padding: EdgeInsets.only(
+          top: 15, left: 15, right: 15,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+        ),
+        child: SingleChildScrollView( // Añadido para evitar overflow
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(isCreating ? 'Nuevo {{ main_entity.name }}' : 'Editar {{ main_entity.name }}', style: Theme.of(context).textTheme.headlineMedium),
+              const SizedBox(height: 16),
+              
+              // Campos de texto generados
+              {% for attr in main_entity.attributes %}
+              TextField(controller: _{{ attr.name }}Controller, decoration: const InputDecoration(labelText: '{{ attr.name | capitalize }}')),
+              {% endfor %}
+              
+              const SizedBox(height: 20),
+              ElevatedButton(
+                child: Text(isCreating ? 'Crear' : 'Actualizar'),
+                onPressed: () {
+                  _saveItem(isCreating ? null : item?['id']);
+                  Navigator.of(context).pop();
+                },
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- C/U: CREATE / UPDATE (Lógica de Guardado) ---
+  Future<void> _saveItem(int? id) async {
+    final bool isCreating = id == null;
+
+    final body = json.encode({
+      // Cuerpo del POST generado
+      {% for attr in main_entity.attributes %}
+      '{{ attr.name }}': _{{ attr.name }}Controller.text,
+      {% endfor %}
+    });
+    
+    final headers = {'Content-Type': 'application/json'};
+    
+    try {
+      http.Response response;
+      if (isCreating) {
+        response = await http.post(Uri.parse(baseUrl), headers: headers, body: body);
+      } else {
+        response = await http.put(Uri.parse('$baseUrl/$id'), headers: headers, body: body);
+      }
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        _fetchItems();
+      } else {
+         _showError('Error al guardar: ${response.body}');
+      }
+    } catch (e) {
+      _showError('Error de red: $e');
+    }
+  }
+
+  // --- D: DELETE (Eliminar) ---
+  Future<void> _deleteItem(int id) async {
+    try {
+      final response = await http.delete(Uri.parse('$baseUrl/$id'));
+      if (response.statusCode == 200 || response.statusCode == 204) {
+         _fetchItems();
+      } else {
+        _showError('Error al eliminar: ${response.body}');
+      }
+    } catch (e) {
+       _showError('Error de red: $e');
+    }
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('CRUD {{ main_entity.name }}'),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                final item = _items[index];
+                return Card(
+                  margin: const EdgeInsets.all(8.0),
+                  child: ListTile(
+                    // Muestra el primer atributo como título
+                    title: Text(item['{{ main_entity.attributes[0].name }}']?.toString() ?? 'ID: ${item['id']}'),
+                    
+                    // Muestra el segundo atributo (si existe) como subtítulo
+                    {% if main_entity.attributes | length > 1 %}
+                    subtitle: Text(item['{{ main_entity.attributes[1].name }}']?.toString() ?? '...'),
+                    {% endif %}
+                    
+                    trailing: SizedBox(
+                      width: 100,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () => _showForm(item),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _deleteItem(item['id']),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showForm(),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
