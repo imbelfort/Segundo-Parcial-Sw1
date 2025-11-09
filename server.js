@@ -627,65 +627,97 @@ const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY
 });
 
-// Reemplaza el endpoint existente por este:
 app.post('/procesar-comando-ia', async (req, res) => {
-  try {
-    const { comando, elementos } = req.body;
-    
-    const systemPrompt = `Eres un asistente que ayuda a modificar diagramas UML. 
-    El usuario te dará instrucciones en lenguaje natural y tú debes devolver un JSON con los cambios a realizar.
-    
-    Formato de respuesta esperado:
-    {
-      "respuesta": "Mensaje de confirmación para el usuario",
-      "cambios": {
-        "agregar": [/* nuevos elementos */],
-        "actualizar": [/* {id, campos} */],
-        "eliminar": [/* ids de elementos a eliminar */]
-      }
-    }`;
-    
-    const userPrompt = `Elementos actuales del diagrama: ${JSON.stringify(elementos, null, 2)}
-    
-    Instrucción del usuario: "${comando}"
-    
-    Por favor, genera un JSON con los cambios necesarios. Responde ÚNICAMENTE con el JSON.`;
-    
-    // Llamar a la API de Groq
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      model: "llama-3.1-70b-versatile",
-      temperature: 0.3,
-      max_tokens: 4000
-    });
-    
-    // Obtener la respuesta
-    const respuesta = chatCompletion.choices[0]?.message?.content;
-    let respuestaJson;
-    
     try {
-      // Extraer el JSON de la respuesta
-      const jsonMatch = respuesta.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) throw new Error('No se encontró un JSON válido en la respuesta');
-      
-      respuestaJson = JSON.parse(jsonMatch[0]);
-    } catch (error) {
-      console.error('Error al parsear la respuesta de la IA:', error);
-      throw new Error('Error al procesar la respuesta de la IA');
-    }
-    
-    res.json(respuestaJson);
-    
-  } catch (error) {
-    console.error('Error en /procesar-comando-ia:', error);
-    res.status(500).json({
-      respuesta: `Lo siento, hubo un error al procesar tu solicitud: ${error.message}`,
-      cambios: null
-    });
+        const { comando, elementos } = req.body; // elementos = elementosPorPizarra[pizarraActual]
+        
+        // --- PROMPT MEJORADO ---
+        const systemPrompt = `Eres un asistente experto en diagramas UML. El usuario te dará un comando y el estado JSON actual del diagrama.
+Tu tarea es devolver un JSON con los cambios necesarios para aplicar ese comando.
+
+Formato de respuesta JSON esperado:
+{
+  "respuesta": "Un mensaje amigable para el usuario confirmando la acción.",
+  "cambios": {
+    "agregar": [/* array de NUEVOS elementos a agregar */],
+    "actualizar": [/* array de objetos con ID y campos a CAMBIAR, ej: {id: "123", name: "NuevoNombre"} */],
+    "eliminar": [/* array de IDs a ELIMINAR */]
   }
+}
+
+--- REGLAS DE FORMATO PARA 'agregar' ---
+
+1.  **Para agregar una CLASE:** usa este formato. Genera un ID único (string).
+    {
+      "id": "elem-173645892345",
+      "tipo": "Class",
+      "name": "NombreDeClase",
+      "attributes": ["+ atributo: Tipo"],
+      "methods": ["+ metodo(): Tipo"],
+      "x": 100, "y": 100, "w": 170, "h": 200
+    }
+
+2.  **Para agregar una RELACIÓN:** usa este formato. Los campos 'from' y 'to' DEBEN coincidir con los IDs de las clases.
+    {
+      "id": "rel-173645892346",
+      "tipo": "Association", // O "Generalization", "Composition", "Aggregation"
+      "from": "id_de_clase_origen",
+      "to": "id_de_clase_destino",
+      "label": "etiqueta (opcional)",
+      "multOrigen": "1",
+      "multDestino": "*"
+    }
+
+--- REGLAS DE LÓGICA ---
+-   **IDs:** Los IDs de los elementos en el JSON provisto pueden ser números o strings. Al crear nuevos elementos, genera un ID de string único, ej: "elem-timestamp".
+-   **Actualizar:** En el array 'actualizar', incluye solo el 'id' y los campos que cambian.
+-   **Cambiar tipo de relacion:** Si el usuario pide "cambia la relación entre A y B a Composición", busca el ID de esa relación y usa el array 'actualizar'. 
+    Ejemplo: {"id": "rel-123", "tipo": "Composition"}-   
+-   **Eliminar:** Si el usuario pide "eliminar la clase X", DEBES agregar el ID de la clase Y TAMBIÉN los IDs de todas las relaciones conectadas a ella en el array 'eliminar'.
+-   **Relaciones:** Si el usuario pide "conecta A con B", busca los IDs de A y B en el JSON provisto y úsalos para crear la nueva relación.
+`;
+        
+        const userPrompt = `Estado actual del diagrama (elementos):
+${JSON.stringify(elementos, null, 2)}
+
+Comando del usuario:
+"${comando}"
+
+Por favor, genera ÚNICAMENTE el JSON con la respuesta y los cambios.`;
+        
+        // Llamar a la API de Groq
+        const chatCompletion = await groq.chat.completions.create({
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: userPrompt }
+            ],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.2, // Baja temperatura para respuestas más precisas y estructuradas
+            max_tokens: 4096,
+            response_format: { type: "json_object" } // Forzar respuesta JSON
+        });
+        
+        // Obtener la respuesta
+        const respuesta = chatCompletion.choices[0]?.message?.content;
+        let respuestaJson;
+        
+        try {
+            // El modo json_object de Groq ya debería devolver un JSON parseable
+            respuestaJson = JSON.parse(respuesta);
+        } catch (error) {
+            console.error('Error al parsear la respuesta JSON de la IA:', error, respuesta);
+            throw new Error('La IA devolvió un formato JSON inválido.');
+        }
+        
+        res.json(respuestaJson);
+        
+    } catch (error) {
+        console.error('Error en /procesar-comando-ia:', error);
+        res.status(500).json({
+            respuesta: `Lo siento, hubo un error al procesar tu solicitud: ${error.message}`,
+            cambios: null
+        });
+    }
 });
 
 // Endpoint para procesar imágenes con Groq para análisis UML

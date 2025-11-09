@@ -2259,7 +2259,113 @@ function mostrarModalSQL(sql, estadisticas) {
     modal.style.display = 'flex';
 }
 
-// ...existing code...
+// Reemplaza tu función 'aplicarCambiosIA' con esta:
+
+function aplicarCambiosIA(cambios) {
+    if (!cambios) return;
+
+    // --- INICIO DE LA CORRECCIÓN ---
+    // Validación robusta
+    let elementosActuales = [];
+    if (Array.isArray(elementosPorPizarra) && elementosPorPizarra[pizarraActual]) {
+        elementosActuales = elementosPorPizarra[pizarraActual];
+    } else {
+        console.error('aplicarCambiosIA: No se pudo acceder a elementosPorPizarra. Estado:', elementosPorPizarra);
+        mostrarNotificacion('Error: El estado de la pizarra es inválido. Recargando...', 'error');
+        // Forzar una recarga es la única forma segura de recuperarse de esto
+        location.reload(); 
+        return;
+    }
+    // --- FIN DE LA CORRECCIÓN ---
+
+
+    // 1. Eliminar elementos
+    if (cambios.eliminar && cambios.eliminar.length > 0) {
+        const idsAEliminar = new Set(cambios.eliminar);
+        elementosActuales = elementosActuales.filter(el => !idsAEliminar.has(el.id));
+        console.log('IA eliminó:', cambios.eliminar);
+    }
+
+    // 2. Actualizar elementos
+    if (cambios.actualizar && cambios.actualizar.length > 0) {
+        cambios.actualizar.forEach(cambio => {
+            const elemento = elementosActuales.find(el => el.id == cambio.id);
+            if (elemento) {
+                Object.assign(elemento, cambio);
+                console.log('IA actualizó:', elemento);
+            }
+        });
+    }
+
+    // 3. Agregar nuevos elementos
+    if (cambios.agregar && cambios.agregar.length > 0) {
+        elementosActuales.push(...cambios.agregar);
+        console.log('IA agregó:', cambios.agregar);
+    }
+
+    // Guardar el nuevo estado
+    elementosPorPizarra[pizarraActual] = elementosActuales;
+
+    render();
+    emitUI();
+}
+
+// Reemplaza tu función 'enviarComandoIA' / 'sendMessage' con esta:
+
+async function enviarComandoIA(event) {
+    event.preventDefault(); 
+    
+    const input = document.getElementById('ia-command-input'); 
+    const comando = input.value;
+
+    if (!comando) {
+        mostrarNotificacion('Por favor, escribe un comando para la IA.', 'error');
+        return;
+    }
+
+    // --- INICIO DE LA CORRECCIÓN ---
+    // Validación robusta de los elementos de la pizarra
+    let elementosActuales = [];
+    if (Array.isArray(elementosPorPizarra) && elementosPorPizarra[pizarraActual]) {
+        elementosActuales = elementosPorPizarra[pizarraActual];
+    } else {
+        console.error('sendMessage: No se pudo acceder a elementosPorPizarra. Estado:', elementosPorPizarra);
+        mostrarNotificacion('Error: No se pueden leer los elementos de la pizarra. Intenta recargar.', 'error');
+        return;
+    }
+    // --- FIN DE LA CORRECCIÓN ---
+
+    mostrarNotificacion('Procesando comando con IA...', 'info');
+    input.disabled = true; 
+
+    try {
+        const response = await fetch('/procesar-comando-ia', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                comando: comando,
+                elementos: elementosActuales // Envía los elementos validados
+            })
+        });
+
+        const resultado = await response.json();
+
+        if (!response.ok) {
+            throw new Error(resultado.respuesta || 'Error desconocido del servidor');
+        }
+
+        mostrarNotificacion(resultado.respuesta, 'success');
+        aplicarCambiosIA(resultado.cambios); // Llama al aplicador
+        input.value = ''; 
+
+    } catch (error) {
+        console.error('Error al contactar a la IA:', error);
+        mostrarNotificacion(error.message, 'error');
+    } finally {
+        input.disabled = false; 
+    }
+}
+
 
 async function enviarPromptGemini(event) {
     event.preventDefault();
