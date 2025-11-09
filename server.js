@@ -690,202 +690,177 @@ app.post('/procesar-comando-ia', async (req, res) => {
 });
 
 // Endpoint para procesar imágenes con el detector UML personalizado
+// Endpoint para procesar imágenes con Groq para análisis UML
+// Endpoint para procesar imágenes con Groq para análisis UML
 app.post('/procesar-imagen', upload.single('imagen'), async (req, res) => {
-  let imagePath;
-  let pythonProcess;
-  const timeoutDuration = 120000; // 2 minutos de timeout
-  
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No se proporcionó ninguna imagen' });
-    }
+    let imagePath;
+    let pythonProcess;
+    const timeoutDuration = 120000; // 2 minutos de timeout
 
-    imagePath = req.file.path;
-    console.log('Procesando imagen UML con modelo personalizado:', imagePath);
-
-    // Configurar el timeout para la respuesta HTTP
-    const timeout = setTimeout(() => {
-      if (pythonProcess) {
-        pythonProcess.kill();
-      }
-      if (!res.headersSent) {
-        res.status(408).json({ 
-          error: 'Tiempo de espera agotado',
-          details: 'El procesamiento de la imagen está tomando más tiempo de lo esperado. Por favor, intente con una imagen más pequeña o más simple.'
-        });
-      }
-    }, timeoutDuration);
-
-    // Función para limpiar recursos
-    const cleanup = () => {
-      clearTimeout(timeout);
-      if (imagePath && fs.existsSync(imagePath)) {
-        fs.unlink(imagePath, (err) => {
-          if (err) console.error('Error al eliminar archivo temporal:', err);
-        });
-      }
-    };
-
-    // Set paths
-    const scriptPath = path.join(__dirname, 'detect_uml.py');
-    const weightsPath = path.resolve(__dirname, 'best.pt');
-    
-    console.log('Python script path:', scriptPath);
-    console.log('Custom model path:', weightsPath);
-    console.log('Model exists:', fs.existsSync(weightsPath));
-    
-    // Verify model file exists before proceeding
-    if (!fs.existsSync(weightsPath)) {
-        console.error('Error: Custom model not found at', weightsPath);
-        return res.status(500).json({ 
-            success: false,
-            error: 'Modelo personalizado no encontrado',
-            details: `No se encontró el archivo del modelo en: ${weightsPath}`,
-            code: 'MODEL_NOT_FOUND'
-        });
-    }
-    
-    // Try with 'python3' first, fall back to 'python' if needed
-    const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
-    
-    // Configure Python command with proper arguments
-    const pythonProcess = spawn(pythonCommand, [
-      scriptPath,
-      '--weights', `"${weightsPath}"`,
-      '--source', `"${imagePath}"`,
-      '--conf', '0.5',
-      '--imgsz', '640',
-      '--device', '0'  // Use GPU if available, fallback to CPU
-    ], {
-      shell: true,  // Use shell to handle paths with spaces
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: {
-        ...process.env,
-        PYTHONUNBUFFERED: '1',
-        YOLO_VERBOSE: 'False'  // Disable YOLO download messages
-      }
-    });
-    
-    // Set a timeout for the process (in milliseconds)
-    const processTimeout = setTimeout(() => {
-      if (!pythonProcess.killed) {
-        pythonProcess.kill('SIGKILL');
-      }
-    }, 120000);  // 2 minutes timeout
-
-    let result = '';
-    let errorOutput = '';
-
-    pythonProcess.stdout.on('data', (data) => {
-      result += data.toString();
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-      console.error('Error del proceso Python:', data.toString());
-    });
-
-    pythonProcess.on('error', (err) => {
-      console.error('Error al iniciar el proceso Python:', err);
-      console.error('Error details:', {
-        code: err.code,
-        errno: err.errno,
-        syscall: err.syscall,
-        path: err.path,
-        spawnargs: err.spawnargs
-      });
-      
-      cleanup();
-      if (!res.headersSent) {
-        res.status(500).json({
-          error: 'Error al iniciar el procesamiento de la imagen',
-          details: `No se pudo ejecutar el comando Python. Asegúrate de que Python esté instalado y en el PATH. Error: ${err.message}`
-        });
-      }
-    });
-
-    pythonProcess.on('close', (code, signal) => {
-      // Clear the process timeout
-      clearTimeout(processTimeout);
-      
-      // Clean up resources
-      cleanup();
-      
-      // If we've already sent a response, don't send another one
-      if (res.headersSent) return;
-      
-      // Handle process exit
-      if (code !== 0 || signal) {
-        const errorMessage = signal 
-          ? `Proceso terminado por señal: ${signal}`
-          : `Código de salida: ${code}`;
-          
-        console.error('Error en el proceso de detección UML.');
-        console.error(errorMessage);
-        console.error('Salida de error:', errorOutput);
-        
-        let userMessage = 'Error al procesar la imagen UML';
-        if (signal === 'SIGKILL') {
-          userMessage = 'El procesamiento de la imagen tomó demasiado tiempo. Por favor, intente con una imagen más pequeña o simple.';
+    try {
+        if (!req.file) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'No se proporcionó ninguna imagen' 
+            });
         }
-        
-        return res.status(500).json({
-          error: userMessage,
-          details: errorOutput || 'El proceso de detección falló con un error desconocido.'
-        });
-      }
 
-      try {
-        console.log('Respuesta del detector UML:', result);
+        imagePath = req.file.path;
+        console.log('Procesando imagen con Groq para análisis UML:', imagePath);
+
+        // Ruta al script de detección
+        const scriptPath = path.join(__dirname, 'detect_uml.py');
         
-        // Buscar el JSON válido en la respuesta
-        const jsonStart = result.indexOf('[');
-        const jsonEnd = result.lastIndexOf(']');
-        
-        if (jsonStart === -1 || jsonEnd === -1) {
-          throw new Error('No se encontró un resultado válido en la respuesta del modelo');
+        // Verificar que el script existe
+        if (!fs.existsSync(scriptPath)) {
+            console.error('Error: Script de detección no encontrado en', scriptPath);
+            return res.status(500).json({ 
+                success: false,
+                error: 'Error en el servidor',
+                details: 'Script de detección no encontrado',
+                code: 'SCRIPT_NOT_FOUND'
+            });
         }
-        
-        const jsonString = result.substring(jsonStart, jsonEnd + 1);
-        console.log('Detecciones JSON extraídas:', jsonString);
-        
-        const detections = JSON.parse(jsonString);
 
-        const elementosUML = detections.map(det => ({
-          class: det.class || 'Class',
-          x: Math.max(0, Math.floor(det.x || 0)),
-          y: Math.max(0, Math.floor(det.y || 0)),
-          w: Math.max(50, Math.min(300, Math.floor(det.w || 150))),
-          h: Math.max(30, Math.min(200, Math.floor(det.h || 100))),
-          confidence: det.confidence || 0.8
+        // Crear un temporizador para el timeout
+        const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(new Error('Tiempo de espera agotado al procesar la imagen'));
+            }, timeoutDuration);
+        });
+
+        // Crear una promesa para el proceso de Python
+        const processPromise = new Promise((resolve, reject) => {
+            const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+            
+            // Configurar el comando de Python
+            pythonProcess = spawn(pythonCommand, [
+                scriptPath,
+                '--image', imagePath
+            ]);
+
+            let resultData = '';
+            let errorData = '';
+
+            pythonProcess.stdout.on('data', (data) => {
+                resultData += data.toString();
+            });
+
+            pythonProcess.stderr.on('data', (data) => {
+                errorData += data.toString();
+            });
+
+            pythonProcess.on('close', (code) => {
+                if (code !== 0) {
+                    console.error(`Error al ejecutar el script Python. Código: ${code}`);
+                    console.error('Error:', errorData);
+                    reject(new Error(`Error al procesar la imagen: ${errorData || 'Error desconocido'}`));
+                    return;
+                }
+
+                try {
+                    const result = JSON.parse(resultData);
+                    resolve(result);
+                } catch (e) {
+                    console.error('Error al analizar la respuesta del script:', e);
+                    console.error('Respuesta cruda:', resultData);
+                    reject(new Error('Formato de respuesta inválido del procesador de imágenes'));
+                }
+            });
+
+            pythonProcess.on('error', (err) => {
+                console.error('Error al ejecutar el proceso Python:', err);
+                reject(new Error('No se pudo ejecutar el procesador de imágenes'));
+            });
+        });
+
+        // Ejecutar con timeout
+        const analysis = await Promise.race([processPromise, timeoutPromise]);
+
+        // Eliminar el archivo temporal después de procesarlo
+        try {
+            if (fs.existsSync(imagePath)) {
+                fs.unlinkSync(imagePath);
+            }
+        } catch (e) {
+            console.error('Error al eliminar el archivo temporal:', e);
+        }
+
+        // Verificar que analysis tiene la estructura esperada
+        if (!analysis || !analysis.elementos || !Array.isArray(analysis.elementos)) {
+            throw new Error('Formato de respuesta inesperado del procesador de imágenes');
+        }
+
+        // Mapear los elementos al formato esperado por el frontend
+const elementosUML = analysis.elementos.map(element => ({
+            id: element.id || uuidv4(),
+            tipo: element.tipo || 'Class',
+            
+            // --- CORREGIDO A INGLÉS ---
+            name: element.nombre || 'SinNombre',
+            attributes: Array.isArray(element.atributos) ? element.atributos : [],
+            methods: Array.isArray(element.metodos) ? element.metodos : [],
+            // --- FIN DE LA CORRECCIÓN ---
+
+            x: element.x || 0,
+            y: element.y || 0,
+            
+            // --- CORREGIDO PARA COINCIDIR CON EL CLIENTE (w/h) ---
+            w: element.width || 150,
+            h: element.height || 100,
+            // --- FIN DE LA CORRECCIÓN ---
+
+            seleccionado: false,
+            arrastrando: false,
+            ultimoX: 0,
+            ultimoY: 0
+        }));
+        // Procesar relaciones
+        const relacionesUML = (analysis.relaciones || []).map(rel => ({
+            id: rel.id || uuidv4(),
+            tipo: rel.tipo || 'Asociacion',
+            desde: rel.desde || '',
+            hacia: rel.hacia || '',
+            etiqueta: rel.etiqueta || ''
         }));
 
-        console.log(`Procesados ${elementosUML.length} elementos UML`);
-        
-        res.json({
-          success: true,
-          elementos: elementosUML,
-          total: elementosUML.length
+        // Emitir los elementos detectados a través de Socket.IO
+        io.emit('elementos_detectados', {
+            elementos: elementosUML,
+            relaciones: relacionesUML
         });
-      } catch (parseError) {
-        console.error('Error al procesar la respuesta del modelo UML:', parseError);
-        console.error('Respuesta cruda:', result);
-        res.status(500).json({
-          error: 'Error al interpretar los resultados del modelo',
-          details: 'El formato de la respuesta no es el esperado.'
-        });
-      }
-    });
 
-  } catch (error) {
-    console.error('Error en /procesar-imagen:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ 
-        error: 'Error interno del servidor',
-        details: 'Ocurrió un error inesperado al procesar la imagen.'
-      });
+        // Devolver el resultado exitoso
+        return res.json({
+            success: true,
+            elementos: elementosUML,
+            relaciones: relacionesUML,
+            message: 'Análisis completado exitosamente'
+        });
+
+    } catch (error) {
+        console.error('Error en /procesar-imagen:', error);
+
+        // Limpiar archivo temporal en caso de error
+        if (imagePath && fs.existsSync(imagePath)) {
+            try {
+                fs.unlinkSync(imagePath);
+            } catch (e) {
+                console.error('Error al limpiar archivo temporal:', e);
+            }
+        }
+
+        // Detener el proceso de Python si aún está en ejecución
+        if (pythonProcess) {
+            pythonProcess.kill();
+        }
+
+        return res.status(500).json({
+            success: false,
+            error: 'Error al procesar la imagen',
+            details: error.message || 'Error desconocido'
+        });
     }
-  }
 });
 
 io.on('connection', (socket) => {
