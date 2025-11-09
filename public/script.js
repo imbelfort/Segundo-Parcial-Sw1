@@ -2025,24 +2025,47 @@ async function generarProyectoSpringBoot() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ elementos: elementos }) // Envía los elementos
+            body: JSON.stringify({ elementos: elementos })
         });
 
         const result = await response.json();
+        console.log('Respuesta del servidor:', result);
 
         if (response.ok && result.success) {
-            mostrarNotificacion('¡Proyecto generado! Tu descarga comenzará.', 'success');
+            mostrarNotificacion('¡Proyecto generado! Iniciando descarga...', 'success');
             
-            // Crea un enlace de descarga
-            const enlace = document.createElement('a');
-            enlace.href = result.downloadUrl; // ej. /generated/spring_boot_project.zip
-            enlace.download = 'mi_proyecto_spring_boot.zip';
-            document.body.appendChild(enlace);
-            enlace.click();
-            document.body.removeChild(enlace);
-
+            // Construir la URL correcta
+            let downloadUrl = result.downloadUrl;
+            
+            // Asegurarse de que la URL comience con /generated/ sin duplicados
+            if (downloadUrl.includes('generated/')) {
+                // Si ya contiene 'generated/', tomar solo la parte después de la última ocurrencia
+                const parts = downloadUrl.split('generated/');
+                downloadUrl = `/generated/${parts[parts.length - 1]}`;
+            } else if (!downloadUrl.startsWith('/')) {
+                // Si no comienza con /, agregar /generated/
+                downloadUrl = `/generated/${downloadUrl}`;
+            }
+            
+            console.log('Iniciando descarga desde:', downloadUrl);
+            
+            // Usar el método de descarga directa
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = 'spring_boot_project.zip';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            
+            // Usar un solo disparador de descarga
+            link.click();
+            
+            // Limpiar después de un tiempo
+            setTimeout(() => {
+                document.body.removeChild(link);
+            }, 1000);
+            
         } else {
-            throw new Error(result.error || 'Error desconocido');
+            throw new Error(result.error || 'Error desconocido al generar el proyecto');
         }
 
     } catch (error) {

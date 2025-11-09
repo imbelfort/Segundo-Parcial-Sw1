@@ -861,16 +861,20 @@ app.post('/procesar-imagen', upload.single('imagen'), async (req, res) => {
 // --- NUEVA RUTA PARA GENERAR EL BACKEND ---
 app.post('/generar-springboot', async (req, res) => {
     // Recibe los datos de la pizarra actual del cliente
-    // (Asume que el cliente envía { elementos: [...] })
     const { elementos } = req.body;
     
     if (!elementos || elementos.length === 0) {
         return res.status(400).json({ error: 'No hay elementos en el diagrama.' });
     }
     
+    // Asegurarse de que el directorio 'generated' exista
+    const generatedDir = path.join(__dirname, 'generated');
+    if (!fs.existsSync(generatedDir)) {
+        fs.mkdirSync(generatedDir, { recursive: true });
+    }
+    
     // El script de Python espera el JSON como un string
     const diagramJsonString = JSON.stringify({ elementos: elementos });
-
     const scriptPath = path.join(__dirname, 'generate_springboot.py');
     const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
 
@@ -886,35 +890,62 @@ app.post('/generar-springboot', async (req, res) => {
 
         pythonProcess.stderr.on('data', (data) => {
             errorData += data.toString();
+            console.error('Python stderr:', data.toString());
         });
 
         pythonProcess.on('close', (code) => {
             if (code !== 0) {
-                console.error('Error en generate_springboot.py:', errorData);
-                return res.status(500).json({ error: 'Error al generar el proyecto', details: errorData });
+                console.error('Error en generate_springboot.py. Código de salida:', code);
+                console.error('Detalles del error:', errorData);
+                return res.status(500).json({ 
+                    error: 'Error al generar el proyecto', 
+                    details: errorData || 'Error desconocido al ejecutar el script Python' 
+                });
             }
 
-            // Envía la ruta del archivo ZIP al cliente para que pueda descargarlo
-            // Necesitamos una ruta relativa web, no del sistema de archivos
-            const webPath = path.relative(__dirname, zipFilePath).replace(/\\/g, '/');
+            // Verificar que el archivo se haya creado
+            if (!zipFilePath || !fs.existsSync(zipFilePath)) {
+                console.error('El archivo ZIP no se generó correctamente en:', zipFilePath);
+                console.error('Directorio generado:', fs.readdirSync(generatedDir));
+                return res.status(500).json({ 
+                    error: 'Error: No se pudo generar el archivo ZIP',
+                    details: 'El archivo no se generó correctamente'
+                });
+            }
+
+            // Enviar solo el nombre del archivo, sin la ruta completa ni el prefijo /generated/
+            const fileName = path.basename(zipFilePath);
+            console.log('Nombre del archivo generado:', fileName);
+            const downloadUrl = fileName; // Solo el nombre del archivo
+            
+            console.log('Archivo generado exitosamente en:', zipFilePath);
+            console.log('URL de descarga:', downloadUrl);
             
             res.json({
                 success: true,
                 message: 'Proyecto Spring Boot generado exitosamente.',
-                downloadUrl: webPath // ej. 'generated/spring_boot_project.zip'
+                downloadUrl: downloadUrl
             });
         });
 
     } catch (error) {
         console.error('Error al ejecutar spawn:', error);
-        res.status(500).json({ error: 'Error interno del servidor.' });
+        res.status(500).json({ 
+            error: 'Error interno del servidor',
+            details: error.message 
+        });
     }
 });
 
-// --- ASEGÚRATE DE QUE LA CARPETA 'generated' SEA PÚBLICA ---
-// (Si tu carpeta 'uploads' ya es pública, añade 'generated' también)
-// (Si no tienes una carpeta pública, añade esta línea)
-app.use('/generated', express.static(path.join(__dirname, 'generated')));
+// Serve static files from the 'generated' directory at the root level
+app.use('/generated', express.static(path.join(__dirname, 'generated'), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.zip')) {
+            res.set('Content-Type', 'application/zip');
+            res.set('Content-Disposition', 'attachment; filename="spring_boot_project.zip"');
+        }
+    }
+}));
 
 io.on('connection', (socket) => {
   socket.on('join-proyecto', async (proyectoId) => {
