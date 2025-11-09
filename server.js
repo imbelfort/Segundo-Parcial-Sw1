@@ -689,8 +689,6 @@ app.post('/procesar-comando-ia', async (req, res) => {
   }
 });
 
-// Endpoint para procesar imágenes con el detector UML personalizado
-// Endpoint para procesar imágenes con Groq para análisis UML
 // Endpoint para procesar imágenes con Groq para análisis UML
 app.post('/procesar-imagen', upload.single('imagen'), async (req, res) => {
     let imagePath;
@@ -792,28 +790,28 @@ app.post('/procesar-imagen', upload.single('imagen'), async (req, res) => {
         }
 
         // Mapear los elementos al formato esperado por el frontend
-const elementosUML = analysis.elementos.map(element => ({
-            id: element.id || uuidv4(),
-            tipo: element.tipo || 'Class',
+        const elementosUML = analysis.elementos.map(element => ({
+            id: element.id, // Python ya envía el ID
+            tipo: element.tipo, // Python ya envía el tipo
             
-            // --- CORREGIDO A INGLÉS ---
-            name: element.nombre || 'SinNombre',
-            attributes: Array.isArray(element.atributos) ? element.atributos : [],
-            methods: Array.isArray(element.metodos) ? element.metodos : [],
+            // --- CORRECCIÓN REAL: Leer las claves en INGLÉS que envía Python ---
+            name: element.name || 'SinNombre',
+            attributes: element.attributes || [],
+            methods: element.methods || [],
             // --- FIN DE LA CORRECCIÓN ---
 
             x: element.x || 0,
             y: element.y || 0,
             
-            // --- CORREGIDO PARA COINCIDIR CON EL CLIENTE (w/h) ---
+            // Esta traducción SÍ es necesaria porque el cliente espera w/h
             w: element.width || 150,
             h: element.height || 100,
-            // --- FIN DE LA CORRECCIÓN ---
 
+            // Campos de estado por defecto para el cliente
             seleccionado: false,
             arrastrando: false,
-            ultimoX: 0,
-            ultimoY: 0
+            _ultimoX: 0,
+            _ultimoY: 0
         }));
         // Procesar relaciones
         const relacionesUML = (analysis.relaciones || []).map(rel => ({
@@ -833,8 +831,6 @@ const elementosUML = analysis.elementos.map(element => ({
         // Devolver el resultado exitoso
         return res.json({
             success: true,
-            elementos: elementosUML,
-            relaciones: relacionesUML,
             message: 'Análisis completado exitosamente'
         });
 

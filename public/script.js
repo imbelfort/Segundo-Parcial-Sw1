@@ -69,31 +69,13 @@ socket.on('elementos_detectados', (data) => {
         
         if (data && data.elementos && data.elementos.length > 0) {
             
-            // --- INICIO DE LA CORRECCIÓN ---
-
-            // 1. Verificar si los datos son de Python ('nombre') o ya de JS ('name')
-            // Miramos el primer elemento para decidir.
-            const esFormatoPython = data.elementos[0].hasOwnProperty('nombre');
-            
-            // Si NO es formato Python (ya tiene 'name'), significa que es un evento
-            // repetido después de la recarga. Lo ignoramos para evitar duplicados/corrupción.
-            if (!esFormatoPython) {
-                console.warn('Evento "elementos_detectados" ignorado: Los datos ya están procesados (formato "name").');
-                // Opcional: podrías simplemente renderizar si sospechas que faltan
-                // render(); 
-                return;
-            }
-
-            // 2. Si es formato Python, procedemos a BORRAR y traducir.
-            // Esta línea ahora es segura porque sabemos que son datos frescos de la IA.
+            // 1. Borra la pizarra actual para cargar los nuevos datos de la IA
             elementosPorPizarra[pizarraActual] = [];
             
-            // --- FIN DE LA CORRECCIÓN ---
-
-
-            // Mapa para mantener el seguimiento de los IDs de los elementos
+            // 2. Mapa para las relaciones
             const elementosMap = new Map();
 
+            // 3. Mapa de tipos de relación (esto sigue siendo necesario)
             const tipoRelacionMap = {
                 'Asociacion': 'Association',
                 'Generalizacion': 'Generalization',
@@ -101,57 +83,19 @@ socket.on('elementos_detectados', (data) => {
                 'Agregacion': 'Aggregation'
             };
             
-            // Agregar todos los elementos (tu lógica de traducción ya es correcta)
+            // 4. Agregar elementos (YA NO SE NECESITA TRADUCCIÓN NI PARCHES)
+            // El servidor ya envía los datos en el formato perfecto (name, attributes, w, h, etc.)
             if (Array.isArray(data.elementos)) {
-data.elementos.forEach(elemento => {
-                    const nuevoElemento = {
-                        // Copia TODOS los campos del objeto original
-                        ...elemento, 
-                        
-                        // Ahora, traduce/corrige los campos necesarios
-                        id: elemento.id || `elem-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                        tipo: elemento.tipo || 'Class', 
-                        
-                        // Lógica Idempotente:
-                        // 1. Usa 'name' si existe.
-                        // 2. Si no, usa 'nombre' (de Python).
-                        // 3. Si no, usa 'NuevaClase'.
-                        name: elemento.name || elemento.nombre || 'NuevaClase',
-                        
-                        // Lógica Idempotente para Atributos:
-                        attributes: Array.isArray(elemento.attributes) ? elemento.attributes : (Array.isArray(elemento.atributos) ? elemento.atributos : []),
-                        
-                        // Lógica Idempotente para Métodos:
-                        methods: Array.isArray(elemento.methods) ? elemento.methods : (Array.isArray(elemento.metodos) ? elemento.metodos : []),
-
-                        // Asegúrate de que las claves de ancho/alto también estén
-                        w: elemento.width || elemento.w || 150,
-                        h: elemento.height || elemento.h || 100,
-
-                        // Asegúrate de que los campos de estado existan
-                        seleccionado: elemento.seleccionado || false,
-                        arrastrando: elemento.arrastrando || false
-                    };
-
-                    // Borra las claves antiguas en español (opcional pero limpio)
-                    delete nuevoElemento.nombre;
-                    delete nuevoElemento.atributos;
-                    delete nuevoElemento.metodos;
-                    delete nuevoElemento.width; // 'w' es el correcto
-                    delete nuevoElemento.height; // 'h' es el correcto
-
-                    // --- FIN DE LA CORRECCIÓN ---
+                data.elementos.forEach(elemento => {
+                    // Simplemente copiamos el elemento. No hay nada que traducir.
+                    const nuevoElemento = { ...elemento }; 
                     
-                    if (elemento.id) {
-                        elementosMap.set(elemento.id, nuevoElemento);
-                    }
-                    
+                    elementosMap.set(nuevoElemento.id, nuevoElemento);
                     elementosPorPizarra[pizarraActual].push(nuevoElemento);
-                    console.log('Elemento agregado:', nuevoElemento);
                 });
             }
             
-            // Agregar las relaciones
+            // 5. Agregar relaciones (esto funciona igual)
             if (Array.isArray(data.relaciones)) {
                 data.relaciones.forEach(relacion => {
                     const desdeElemento = elementosMap.get(relacion.desde);
@@ -165,9 +109,7 @@ data.elementos.forEach(elemento => {
                             to: haciaElemento.id,
                             label: relacion.etiqueta || ''
                         };
-                        
                         elementosPorPizarra[pizarraActual].push(nuevaRelacion);
-                        console.log('Relación agregada:', nuevaRelacion);
                     } else {
                         console.warn('No se pudo crear la relación. Elementos no encontrados:', {
                             desde: relacion.desde,

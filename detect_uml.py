@@ -65,9 +65,8 @@ def analyze_uml_with_groq(image_path):
     Para cada elemento, incluye:
     - type: tipo de elemento (ej: "Class", "Interface")
     - name: nombre del elemento
-    - attributes: lista de atributos (solo el nombre, sin visibilidad ni tipo)
-    - methods: lista de métodos (solo el nombre, sin parámetros ni tipo de retorno)
-    - x, y: posición en el diagrama (usa valores razonables si no se pueden determinar)
+    - attributes: Lista de strings. Cada string debe ser el TEXTO COMPLETO del atributo como aparece en el diagrama. DEBE incluir visibilidad, nombre y tipo (ej: "+ balance: float"). NO OMITAS el tipo.
+    - methods: Lista de strings. Cada string debe ser el TEXTO COMPLETO del método como aparece en el diagrama. DEBE incluir visibilidad, nombre, parámetros y tipo de retorno (ej: "+ deposit(amount: float): void"). NO OMITAS el tipo de retorno.
     - width: ancho fijo de 150
     - height: altura calculada basada en la cantidad de atributos y métodos
     
@@ -155,7 +154,7 @@ def transform_to_frontend_format(data):
     elementos = []
     relaciones = []
     
-    # Mapeo de tipos de relación
+    # Mapeo de tipos de relación (esto está bien como está)
     relacion_map = {
         'Association': 'Asociacion',
         'Inheritance': 'Generalizacion',
@@ -178,13 +177,17 @@ def transform_to_frontend_format(data):
             methods_count = len(element.get('methods', []))
             height = max(100, 30 + (attr_count + methods_count) * 20)
             
-            # Crear elemento en formato del frontend
+            # --- INICIO DE LA CORRECCIÓN ---
+            # Crear elemento en formato del frontend (usando claves en Inglés)
             elemento = {
                 'id': element_id,
                 'tipo': element.get('type', 'Class'),
-                'nombre': element.get('name', 'SinNombre'),
-                'atributos': element.get('attributes', []),
-                'metodos': element.get('methods', []),
+                
+                # Usar claves en inglés para coincidir con la BD y el cliente
+                'name': element.get('name', 'SinNombre'),
+                'attributes': element.get('attributes', []),
+                'methods': element.get('methods', []),
+                
                 'x': element.get('x', 100 + len(elementos) * 200),
                 'y': element.get('y', 100),
                 'width': 150,  # Ancho fijo
@@ -195,18 +198,19 @@ def transform_to_frontend_format(data):
                 'ultimoY': 0
             }
             
-            # Asegurar que los atributos y métodos sean listas de strings
-            if not isinstance(elemento['atributos'], list):
-                elemento['atributos'] = []
-            if not isinstance(elemento['metodos'], list):
-                elemento['metodos'] = []
+            # Asegurar que los atributos y métodos sean listas de strings (usando las claves corregidas)
+            if not isinstance(elemento['attributes'], list):
+                elemento['attributes'] = []
+            if not isinstance(elemento['methods'], list):
+                elemento['methods'] = []
+            # --- FIN DE LA CORRECCIÓN ---
                 
             elementos.append(elemento)
     
     # Procesar relaciones
     if 'relationships' in data:
         for rel in data['relationships']:
-            # Mapear tipo de relación
+            # Mapear tipo de relación (esto está bien)
             rel_type = rel.get('type', 'Asociacion')
             rel_type = relacion_map.get(rel_type, 'Asociacion')
             
@@ -214,9 +218,11 @@ def transform_to_frontend_format(data):
             from_name = rel.get('desde', '')
             to_name = rel.get('hacia', '')
             
-            # Buscar los elementos correspondientes
-            from_elem = next((e for e in elementos if e['nombre'] == from_name), None)
-            to_elem = next((e for e in elementos if e['nombre'] == to_name), None)
+            # --- INICIO DE LA CORRECCIÓN ---
+            # Buscar los elementos correspondientes usando la clave 'name' (Inglés)
+            from_elem = next((e for e in elementos if e['name'] == from_name), None)
+            to_elem = next((e for e in elementos if e['name'] == to_name), None)
+            # --- FIN DE LA CORRECCIÓN ---
             
             if from_elem and to_elem:
                 relacion = {
