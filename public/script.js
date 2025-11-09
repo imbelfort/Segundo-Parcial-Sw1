@@ -70,7 +70,11 @@ socket.on('elementos_detectados', (data) => {
         if (data && data.elementos && data.elementos.length > 0) {
             
             // 1. Borra la pizarra actual para cargar los nuevos datos de la IA
-            elementosPorPizarra[pizarraActual] = [];
+            elementosPorPizarra[pizarraActual] = 
+            elementosPorPizarra[pizarraActual].filter(
+                (e, i, arr) => arr.findIndex(x => x.id === e.id) === i
+            );
+
             
             // 2. Mapa para las relaciones
             const elementosMap = new Map();
