@@ -2010,6 +2010,23 @@ function descargarComoArchivo(contenido, nombreArchivo) {
     document.body.removeChild(enlace);
 }
 
+// --- NUEVA FUNCIÓN DE AYUDA (para no repetir código) ---
+function crearEnlaceDeDescarga(url, nombreArchivo) {
+    // Asegúrate de que la URL sea absoluta (comenzando con /)
+    let downloadUrl = url;
+    if (downloadUrl && !downloadUrl.startsWith('/')) {
+        downloadUrl = '/' + downloadUrl;
+    }
+    
+    const enlace = document.createElement('a');
+    enlace.href = downloadUrl;
+    enlace.download = nombreArchivo;
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+}
+
+// --- ACTUALIZA TU FUNCIÓN DE GENERACIÓN ---
 async function generarProyectoSpringBoot() {
     const elementos = elementosPorPizarra[pizarraActual] || [];
     if (elementos.length === 0) {
@@ -2029,41 +2046,21 @@ async function generarProyectoSpringBoot() {
         });
 
         const result = await response.json();
-        console.log('Respuesta del servidor:', result);
+        console.log('Respuesta del servidor:', result); // Depuración: verifica que lleguen ambas URLs
 
         if (response.ok && result.success) {
-            mostrarNotificacion('¡Proyecto generado! Iniciando descarga...', 'success');
+            mostrarNotificacion('¡Proyecto generado! Descargando archivos...', 'success');
             
-            // Construir la URL correcta
-            let downloadUrl = result.downloadUrl;
+            // --- INICIO DE LA CORRECCIÓN ---
+            // 1. Descargar el ZIP del proyecto
+            crearEnlaceDeDescarga(result.downloadUrl, 'mi_proyecto_spring_boot.zip');
             
-            // Asegurarse de que la URL comience con /generated/ sin duplicados
-            if (downloadUrl.includes('generated/')) {
-                // Si ya contiene 'generated/', tomar solo la parte después de la última ocurrencia
-                const parts = downloadUrl.split('generated/');
-                downloadUrl = `/generated/${parts[parts.length - 1]}`;
-            } else if (!downloadUrl.startsWith('/')) {
-                // Si no comienza con /, agregar /generated/
-                downloadUrl = `/generated/${downloadUrl}`;
-            }
-            
-            console.log('Iniciando descarga desde:', downloadUrl);
-            
-            // Usar el método de descarga directa
-            const link = document.createElement('a');
-            link.href = downloadUrl;
-            link.download = 'spring_boot_project.zip';
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            
-            // Usar un solo disparador de descarga
-            link.click();
-            
-            // Limpiar después de un tiempo
+            // 2. Descargar la colección de Postman (con un pequeño retraso)
             setTimeout(() => {
-                document.body.removeChild(link);
-            }, 1000);
-            
+                crearEnlaceDeDescarga(result.postmanUrl, 'postman_collection.json');
+            }, 500); // 500ms de retraso para ayudar al navegador
+            // --- FIN DE LA CORRECCIÓN ---
+
         } else {
             throw new Error(result.error || 'Error desconocido al generar el proyecto');
         }
@@ -2073,8 +2070,6 @@ async function generarProyectoSpringBoot() {
         mostrarNotificacion(`Error al generar: ${error.message}`, 'error');
     }
 }
-
-
 // Función para generar script SQL desde los elementos de la pizarra
 async function generarScriptSQL() {
     try {

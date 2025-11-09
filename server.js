@@ -890,7 +890,7 @@ app.post('/procesar-imagen', upload.single('imagen'), async (req, res) => {
     }
 });
 
-// --- NUEVA RUTA PARA GENERAR EL BACKEND ---
+// --- NUEVA RUTA PARA GENERAR EL BACKEND (CORREGIDA PARA POSTMAN) ---
 app.post('/generar-springboot', async (req, res) => {
     // Recibe los datos de la pizarra actual del cliente
     const { elementos } = req.body;
@@ -913,11 +913,12 @@ app.post('/generar-springboot', async (req, res) => {
     try {
         const pythonProcess = spawn(pythonCommand, [scriptPath, diagramJsonString]);
 
-        let zipFilePath = '';
+        // --- INICIO DE LA CORRECCIÓN ---
+        let outputData = ''; // Almacenará la salida JSON completa
         let errorData = '';
 
         pythonProcess.stdout.on('data', (data) => {
-            zipFilePath += data.toString().trim();
+            outputData += data.toString(); // Acumula toda la salida
         });
 
         pythonProcess.stderr.on('data', (data) => {
@@ -928,36 +929,44 @@ app.post('/generar-springboot', async (req, res) => {
         pythonProcess.on('close', (code) => {
             if (code !== 0) {
                 console.error('Error en generate_springboot.py. Código de salida:', code);
-                console.error('Detalles del error:', errorData);
                 return res.status(500).json({ 
                     error: 'Error al generar el proyecto', 
-                    details: errorData || 'Error desconocido al ejecutar el script Python' 
+                    details: errorData || 'Error desconocido'
                 });
             }
 
-            // Verificar que el archivo se haya creado
-            if (!zipFilePath || !fs.existsSync(zipFilePath)) {
-                console.error('El archivo ZIP no se generó correctamente en:', zipFilePath);
-                console.error('Directorio generado:', fs.readdirSync(generatedDir));
-                return res.status(500).json({ 
-                    error: 'Error: No se pudo generar el archivo ZIP',
-                    details: 'El archivo no se generó correctamente'
-                });
-            }
+            try {
+                // 1. Parsear el JSON que envía Python
+                // (outputData será: {"zipPath": "...", "postmanPath": "..."})
+                const paths = JSON.parse(outputData.trim());
 
-            // Enviar solo el nombre del archivo, sin la ruta completa ni el prefijo /generated/
-            const fileName = path.basename(zipFilePath);
-            console.log('Nombre del archivo generado:', fileName);
-            const downloadUrl = fileName; // Solo el nombre del archivo
-            
-            console.log('Archivo generado exitosamente en:', zipFilePath);
-            console.log('URL de descarga:', downloadUrl);
-            
-            res.json({
-                success: true,
-                message: 'Proyecto Spring Boot generado exitosamente.',
-                downloadUrl: downloadUrl
-            });
+                // 2. Verificar que AMBOS archivos existen
+                if (!paths.zipPath || !fs.existsSync(paths.zipPath)) {
+                    console.error('El archivo ZIP no se generó en:', paths.zipPath);
+                    return res.status(500).json({ error: 'Error: No se pudo generar el archivo ZIP'});
+                }
+                if (!paths.postmanPath || !fs.existsSync(paths.postmanPath)) {
+                    console.error('El archivo Postman no se generó en:', paths.postmanPath);
+                    return res.status(500).json({ error: 'Error: No se pudo generar el archivo Postman'});
+                }
+
+                // 3. Convertir ambas rutas de sistema a rutas web relativas
+                const webZipPath = path.relative(__dirname, paths.zipPath).replace(/\\/g, '/');
+                const webPostmanPath = path.relative(__dirname, paths.postmanPath).replace(/\\/g, '/');
+                
+                // 4. Enviar AMBAS URLs al cliente
+                res.json({
+                    success: true,
+                    message: 'Proyecto y colección Postman generados.',
+                    downloadUrl: webZipPath,
+                    postmanUrl: webPostmanPath // <--- URL de Postman añadida
+                });
+
+            } catch (parseError) {
+                console.error('Error al parsear la salida de Python:', parseError, outputData);
+                return res.status(500).json({ error: 'Error al leer la respuesta del generador.' });
+            }
+            // --- FIN DE LA CORRECCIÓN ---
         });
 
     } catch (error) {
