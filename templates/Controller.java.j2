@@ -1,0 +1,34 @@
+package {{ base_package }}.controller;
+
+import {{ base_package }}.model.{{ entity.name }};
+import {{ base_package }}.repository.{{ entity.name }}Repository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/{{ camel_case_name }}s") // ej. /api/customers
+public class {{ entity.name }}Controller {
+
+    @Autowired
+    private {{ entity.name }}Repository {{ camel_case_name }}Repository;
+
+    @GetMapping
+    public List<{{ entity.name }}> getAll() {
+        return {{ camel_case_name }}Repository.findAll();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<{{ entity.name }}> getById(@PathVariable Long id) {
+        return {{ camel_case_name }}Repository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping
+    public {{ entity.name }} create(@RequestBody {{ entity.name }} {{ camel_case_name }}) {
+        return {{ camel_case_name }}Repository.save({{ camel_case_name }});
+    }
+}

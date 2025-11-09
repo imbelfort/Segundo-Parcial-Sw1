@@ -1,0 +1,25 @@
+package {{ base_package }}.model;
+
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+
+@Entity
+@Table(name = "{{ entity.table_name }}")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class {{ entity.name }} {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    {% for attr in entity.attributes %}
+    private {{ attr.type }} {{ attr.name }};
+    {% endfor %}
+
+    // Las relaciones (como @OneToMany) son más complejas y requieren
+    // un análisis del JSON de 'relaciones', pero esta entidad es funcional.
+}

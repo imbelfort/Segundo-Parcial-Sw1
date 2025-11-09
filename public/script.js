@@ -74,7 +74,6 @@ socket.on('elementos_detectados', (data) => {
             elementosPorPizarra[pizarraActual].filter(
                 (e, i, arr) => arr.findIndex(x => x.id === e.id) === i
             );
-
             
             // 2. Mapa para las relaciones
             const elementosMap = new Map();
@@ -2010,6 +2009,48 @@ function descargarComoArchivo(contenido, nombreArchivo) {
     enlace.click();
     document.body.removeChild(enlace);
 }
+
+async function generarProyectoSpringBoot() {
+    const elementos = elementosPorPizarra[pizarraActual] || [];
+    if (elementos.length === 0) {
+        mostrarNotificacion('No hay elementos en la pizarra para generar.', 'error');
+        return;
+    }
+
+    mostrarNotificacion('Generando proyecto Spring Boot... Esto puede tardar un momento.', 'info');
+
+    try {
+        const response = await fetch('/generar-springboot', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ elementos: elementos }) // Envía los elementos
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            mostrarNotificacion('¡Proyecto generado! Tu descarga comenzará.', 'success');
+            
+            // Crea un enlace de descarga
+            const enlace = document.createElement('a');
+            enlace.href = result.downloadUrl; // ej. /generated/spring_boot_project.zip
+            enlace.download = 'mi_proyecto_spring_boot.zip';
+            document.body.appendChild(enlace);
+            enlace.click();
+            document.body.removeChild(enlace);
+
+        } else {
+            throw new Error(result.error || 'Error desconocido');
+        }
+
+    } catch (error) {
+        console.error('Error al generar Spring Boot:', error);
+        mostrarNotificacion(`Error al generar: ${error.message}`, 'error');
+    }
+}
+
 
 // Función para generar script SQL desde los elementos de la pizarra
 async function generarScriptSQL() {

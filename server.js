@@ -12,7 +12,6 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 const Groq = require("groq-sdk");
 
-
 const app = express();
 app.use(express.json()); // For parsing application/json
 app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
@@ -858,6 +857,64 @@ app.post('/procesar-imagen', upload.single('imagen'), async (req, res) => {
         });
     }
 });
+
+// --- NUEVA RUTA PARA GENERAR EL BACKEND ---
+app.post('/generar-springboot', async (req, res) => {
+    // Recibe los datos de la pizarra actual del cliente
+    // (Asume que el cliente envía { elementos: [...] })
+    const { elementos } = req.body;
+    
+    if (!elementos || elementos.length === 0) {
+        return res.status(400).json({ error: 'No hay elementos en el diagrama.' });
+    }
+    
+    // El script de Python espera el JSON como un string
+    const diagramJsonString = JSON.stringify({ elementos: elementos });
+
+    const scriptPath = path.join(__dirname, 'generate_springboot.py');
+    const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
+
+    try {
+        const pythonProcess = spawn(pythonCommand, [scriptPath, diagramJsonString]);
+
+        let zipFilePath = '';
+        let errorData = '';
+
+        pythonProcess.stdout.on('data', (data) => {
+            zipFilePath += data.toString().trim();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            errorData += data.toString();
+        });
+
+        pythonProcess.on('close', (code) => {
+            if (code !== 0) {
+                console.error('Error en generate_springboot.py:', errorData);
+                return res.status(500).json({ error: 'Error al generar el proyecto', details: errorData });
+            }
+
+            // Envía la ruta del archivo ZIP al cliente para que pueda descargarlo
+            // Necesitamos una ruta relativa web, no del sistema de archivos
+            const webPath = path.relative(__dirname, zipFilePath).replace(/\\/g, '/');
+            
+            res.json({
+                success: true,
+                message: 'Proyecto Spring Boot generado exitosamente.',
+                downloadUrl: webPath // ej. 'generated/spring_boot_project.zip'
+            });
+        });
+
+    } catch (error) {
+        console.error('Error al ejecutar spawn:', error);
+        res.status(500).json({ error: 'Error interno del servidor.' });
+    }
+});
+
+// --- ASEGÚRATE DE QUE LA CARPETA 'generated' SEA PÚBLICA ---
+// (Si tu carpeta 'uploads' ya es pública, añade 'generated' también)
+// (Si no tienes una carpeta pública, añade esta línea)
+app.use('/generated', express.static(path.join(__dirname, 'generated')));
 
 io.on('connection', (socket) => {
   socket.on('join-proyecto', async (proyectoId) => {
