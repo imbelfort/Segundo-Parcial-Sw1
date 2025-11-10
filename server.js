@@ -907,74 +907,65 @@ app.post('/generar-springboot', async (req, res) => {
     
     // El script de Python espera el JSON como un string
     const diagramJsonString = JSON.stringify({ elementos: elementos });
-    const scriptPath = path.join(__dirname, 'generate_springboot.py');
+const scriptPath = path.join(__dirname, 'generate_springboot.py');
     const pythonCommand = process.platform === 'win32' ? 'python' : 'python3';
 
     try {
         const pythonProcess = spawn(pythonCommand, [scriptPath, diagramJsonString]);
-
-        // --- INICIO DE LA CORRECCIÓN ---
-        let outputData = ''; // Almacenará la salida JSON completa
+        let outputData = '';
         let errorData = '';
 
-        pythonProcess.stdout.on('data', (data) => {
-            outputData += data.toString(); // Acumula toda la salida
-        });
-
-        pythonProcess.stderr.on('data', (data) => {
-            errorData += data.toString();
-            console.error('Python stderr:', data.toString());
-        });
+        pythonProcess.stdout.on('data', (data) => { outputData += data.toString(); });
+        pythonProcess.stderr.on('data', (data) => { errorData += data.toString(); });
 
         pythonProcess.on('close', (code) => {
             if (code !== 0) {
-                console.error('Error en generate_springboot.py. Código de salida:', code);
-                return res.status(500).json({ 
-                    error: 'Error al generar el proyecto', 
-                    details: errorData || 'Error desconocido'
-                });
+                console.error('Error en generate_springboot.py:', errorData);
+                return res.status(500).json({ error: 'Error al generar el proyecto', details: errorData });
             }
 
             try {
-                // 1. Parsear el JSON que envía Python
-                // (outputData será: {"zipPath": "...", "postmanPath": "..."})
+                // Parsear el JSON que ahora contiene TRES rutas
                 const paths = JSON.parse(outputData.trim());
 
-                // 2. Verificar que AMBOS archivos existen
+                // Verificar los 3 archivos
                 if (!paths.zipPath || !fs.existsSync(paths.zipPath)) {
-                    console.error('El archivo ZIP no se generó en:', paths.zipPath);
-                    return res.status(500).json({ error: 'Error: No se pudo generar el archivo ZIP'});
+                    return res.status(500).json({ error: 'Error: No se pudo generar el ZIP de Spring'});
                 }
                 if (!paths.postmanPath || !fs.existsSync(paths.postmanPath)) {
-                    console.error('El archivo Postman no se generó en:', paths.postmanPath);
-                    return res.status(500).json({ error: 'Error: No se pudo generar el archivo Postman'});
+                    return res.status(500).json({ error: 'Error: No se pudo generar el JSON de Postman'});
                 }
+                // --- INICIO DE LA CORRECCIÓN ---
+                if (!paths.flutterZipPath || !fs.existsSync(paths.flutterZipPath)) {
+                    return res.status(500).json({ error: 'Error: No se pudo generar el ZIP de Flutter'});
+                }
+                // --- FIN DE LA CORRECCIÓN ---
 
-                // 3. Convertir ambas rutas de sistema a rutas web relativas
+                // Convertir las 3 rutas a rutas web
                 const webZipPath = path.relative(__dirname, paths.zipPath).replace(/\\/g, '/');
                 const webPostmanPath = path.relative(__dirname, paths.postmanPath).replace(/\\/g, '/');
+                // --- INICIO DE LA CORRECCIÓN ---
+                const webFlutterPath = path.relative(__dirname, paths.flutterZipPath).replace(/\\/g, '/');
+                // --- FIN DE LA CORRECCIÓN ---
                 
-                // 4. Enviar AMBAS URLs al cliente
+                // Enviar las 3 URLs al cliente
                 res.json({
                     success: true,
                     message: 'Proyecto y colección Postman generados.',
                     downloadUrl: webZipPath,
-                    postmanUrl: webPostmanPath // <--- URL de Postman añadida
+                    postmanUrl: webPostmanPath,
+                    flutterUrl: webFlutterPath // <-- URL de Flutter añadida
                 });
 
             } catch (parseError) {
                 console.error('Error al parsear la salida de Python:', parseError, outputData);
                 return res.status(500).json({ error: 'Error al leer la respuesta del generador.' });
             }
-            // --- FIN DE LA CORRECCIÓN ---
         });
 
     } catch (error) {
         console.error('Error al ejecutar spawn:', error);
-        res.status(500).json({ 
-            error: 'Error interno del servidor',
-            details: error.message 
-        });
+        res.status(500).json({ error: 'Error interno del servidor' });
     }
 });
 

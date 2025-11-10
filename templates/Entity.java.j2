@@ -1,9 +1,18 @@
 package {{ base_package }}.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+
+{% for imp in entity.imports %}
+import {{ imp }};
+{% endfor %}
 
 @Entity
 @Table(name = "{{ entity.table_name }}")
@@ -17,9 +26,7 @@ public class {{ entity.name }} {
     private Long id;
 
     {% for attr in entity.attributes %}
-    private {{ attr.type }} {{ attr.name }};
+    @Column(name = "{{ attr.name | lower }}")
+    private {{ attr.type }} {{ attr.name | lower if attr.name|length == 1 else attr.name[0:1]|lower + attr.name[1:] }};
     {% endfor %}
-
-    // Las relaciones (como @OneToMany) son más complejas y requieren
-    // un análisis del JSON de 'relaciones', pero esta entidad es funcional.
 }

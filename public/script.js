@@ -2010,14 +2010,13 @@ function descargarComoArchivo(contenido, nombreArchivo) {
     document.body.removeChild(enlace);
 }
 
-// --- NUEVA FUNCIÓN DE AYUDA (para no repetir código) ---
+// En scripts.js
+
 function crearEnlaceDeDescarga(url, nombreArchivo) {
-    // Asegúrate de que la URL sea absoluta (comenzando con /)
     let downloadUrl = url;
     if (downloadUrl && !downloadUrl.startsWith('/')) {
         downloadUrl = '/' + downloadUrl;
     }
-    
     const enlace = document.createElement('a');
     enlace.href = downloadUrl;
     enlace.download = nombreArchivo;
@@ -2026,43 +2025,42 @@ function crearEnlaceDeDescarga(url, nombreArchivo) {
     document.body.removeChild(enlace);
 }
 
-// --- ACTUALIZA TU FUNCIÓN DE GENERACIÓN ---
 async function generarProyectoSpringBoot() {
     const elementos = elementosPorPizarra[pizarraActual] || [];
-    if (elementos.length === 0) {
-        mostrarNotificacion('No hay elementos en la pizarra para generar.', 'error');
-        return;
-    }
+    if (elementos.length === 0) { /* ... error ... */ }
 
     mostrarNotificacion('Generando proyecto Spring Boot... Esto puede tardar un momento.', 'info');
 
     try {
         const response = await fetch('/generar-springboot', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ elementos: elementos })
         });
 
         const result = await response.json();
-        console.log('Respuesta del servidor:', result); // Depuración: verifica que lleguen ambas URLs
+        console.log('Respuesta del servidor:', result); 
 
         if (response.ok && result.success) {
             mostrarNotificacion('¡Proyecto generado! Descargando archivos...', 'success');
             
-            // --- INICIO DE LA CORRECCIÓN ---
-            // 1. Descargar el ZIP del proyecto
-            crearEnlaceDeDescarga(result.downloadUrl, 'mi_proyecto_spring_boot.zip');
+            // 1. Descargar el ZIP del Backend
+            crearEnlaceDeDescarga(result.downloadUrl, 'spring_boot_project.zip');
             
-            // 2. Descargar la colección de Postman (con un pequeño retraso)
+            // 2. Descargar la colección de Postman
             setTimeout(() => {
                 crearEnlaceDeDescarga(result.postmanUrl, 'postman_collection.json');
-            }, 500); // 500ms de retraso para ayudar al navegador
+            }, 500);
+            
+            // --- INICIO DE LA CORRECCIÓN ---
+            // 3. Descargar el ZIP de Flutter
+            setTimeout(() => {
+                crearEnlaceDeDescarga(result.flutterUrl, 'flutter_project.zip');
+            }, 1000); // Con un retraso mayor para el navegador
             // --- FIN DE LA CORRECCIÓN ---
 
         } else {
-            throw new Error(result.error || 'Error desconocido al generar el proyecto');
+            throw new Error(result.error || 'Error desconocido');
         }
 
     } catch (error) {

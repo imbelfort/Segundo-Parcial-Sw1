@@ -7,11 +7,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional; // <--- AÑADIR IMPORT
+import java.util.Optional; 
 
 @RestController
-@RequestMapping("/api/{{ camel_case_name }}") // (Quitamos la 's' extra)
-public class {{ entity.name }}Controller {
+@RequestMapping("/api/{{ camel_case_name }}") 
+@CrossOrigin(origins = "*")
 
     @Autowired
     private {{ entity.name }}Repository {{ camel_case_name }}Repository;
@@ -33,30 +33,26 @@ public class {{ entity.name }}Controller {
         return {{ camel_case_name }}Repository.save({{ camel_case_name }});
     }
 
-    // --- AÑADIR MÉTODO UPDATE (PUT) ---
     @PutMapping("/{id}")
     public ResponseEntity<{{ entity.name }}> update(
-            @PathVariable Long id, 
-            @RequestBody {{ entity.name }} entityDetails) {
-        
-        Optional<{{ entity.name }}> optionalEntity = {{ camel_case_name }}Repository.findById(id);
-        if (!optionalEntity.isPresent()) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        {{ entity.name }} existingEntity = optionalEntity.get();
-        
-        // Copiar propiedades (asumiendo que los atributos se mapean)
-        // (Nota: esto es simplificado, en un caso real se usarían DTOs)
-        {% for attr in entity.attributes %}
-        existingEntity.set{{ attr.name | capitalize }}(entityDetails.get{{ attr.name | capitalize }}());
-        {% endfor %}
-
-        final {{ entity.name }} updatedEntity = {{ camel_case_name }}Repository.save(existingEntity);
-        return ResponseEntity.ok(updatedEntity);
+        @PathVariable Long id, 
+        @RequestBody {{ entity.name }} entityDetails) {
+    
+    return {{ camel_case_name }}Repository.findById(id)
+        .map(existingEntity -> {
+            // Update only the fields that are present in the request
+            {% for attr in entity.attributes %}
+            if (entityDetails.get{{ attr.pascal_name }}() != null) {
+                existingEntity.set{{ attr.pascal_name }}(entityDetails.get{{ attr.pascal_name }}());
+            }
+            {% endfor %}
+            
+            {{ entity.name }} updatedEntity = {{ camel_case_name }}Repository.save(existingEntity);
+            return ResponseEntity.ok(updatedEntity);
+        })
+        .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // --- AÑADIR MÉTODO DELETE ---
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (!{{ camel_case_name }}Repository.existsById(id)) {

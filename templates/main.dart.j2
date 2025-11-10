@@ -103,9 +103,9 @@ class _CrudScreenState extends State<CrudScreen> {
               Text(isCreating ? 'Nuevo {{ main_entity.name }}' : 'Editar {{ main_entity.name }}', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 16),
               
-              // Campos de texto generados
+              // --- CAMBIO: Se usa 'pascal_name' en lugar de 'name | capitalize' ---
               {% for attr in main_entity.attributes %}
-              TextField(controller: _{{ attr.name }}Controller, decoration: const InputDecoration(labelText: '{{ attr.name | capitalize }}')),
+              TextField(controller: _{{ attr.name }}Controller, decoration: const InputDecoration(labelText: '{{ attr.pascal_name }}')),
               {% endfor %}
               
               const SizedBox(height: 20),
