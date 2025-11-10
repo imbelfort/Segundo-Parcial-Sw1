@@ -2,63 +2,62 @@ package {{ base_package }}.controller;
 
 import {{ base_package }}.model.{{ entity.name }};
 import {{ base_package }}.repository.{{ entity.name }}Repository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
-import java.util.Optional; 
 
 @RestController
-@RequestMapping("/api/{{ camel_case_name }}") 
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/{{ camel_case_name }}")
+@CrossOrigin(origins = "*") 
+public class {{ entity.name }}Controller {
 
-    @Autowired
-    private {{ entity.name }}Repository {{ camel_case_name }}Repository;
+    private final {{ entity.name }}Repository repository;
+
+    public {{ entity.name }}Controller({{ entity.name }}Repository repository) {
+        this.repository = repository;
+    }
 
     @GetMapping
     public List<{{ entity.name }}> getAll() {
-        return {{ camel_case_name }}Repository.findAll();
+        return repository.findAll();
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<{{ entity.name }}> getById(@PathVariable Long id) {
-        return {{ camel_case_name }}Repository.findById(id)
+        return repository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public {{ entity.name }} create(@RequestBody {{ entity.name }} {{ camel_case_name }}) {
-        return {{ camel_case_name }}Repository.save({{ camel_case_name }});
+    public {{ entity.name }} create(@RequestBody {{ entity.name }} entity) {
+        return repository.save(entity);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<{{ entity.name }}> update(
-        @PathVariable Long id, 
-        @RequestBody {{ entity.name }} entityDetails) {
-    
-    return {{ camel_case_name }}Repository.findById(id)
-        .map(existingEntity -> {
-            // Update only the fields that are present in the request
-            {% for attr in entity.attributes %}
-            if (entityDetails.get{{ attr.pascal_name }}() != null) {
-                existingEntity.set{{ attr.pascal_name }}(entityDetails.get{{ attr.pascal_name }}());
-            }
-            {% endfor %}
-            
-            {{ entity.name }} updatedEntity = {{ camel_case_name }}Repository.save(existingEntity);
-            return ResponseEntity.ok(updatedEntity);
-        })
-        .orElseGet(() -> ResponseEntity.notFound().build());
+            @PathVariable Long id, 
+            @RequestBody {{ entity.name }} entityDetails) {
+
+        return repository.findById(id)
+                .map(existingEntity -> {
+                    {% for attr in entity.attributes %}
+                    if (entityDetails.get{{ attr.pascal_name }}() != null) {
+                        existingEntity.set{{ attr.pascal_name }}(entityDetails.get{{ attr.pascal_name }}());
+                    }
+                    {% endfor %}
+                    {{ entity.name }} updated = repository.save(existingEntity);
+                    return ResponseEntity.ok(updated);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        if (!{{ camel_case_name }}Repository.existsById(id)) {
+        if (!repository.existsById(id)) {
             return ResponseEntity.notFound().build();
         }
-        {{ camel_case_name }}Repository.deleteById(id);
+        repository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 }
