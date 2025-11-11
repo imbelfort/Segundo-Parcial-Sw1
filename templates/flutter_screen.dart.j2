@@ -1,0 +1,241 @@
+// lib/screens/{{ entity.snake_case_name }}_screen.dart
+import 'package:flutter/material.dart';
+import '../services/{{ entity.snake_case_name }}_service.dart';
+
+// 1. Importa dinámicamente los servicios de las relaciones
+{% for attr in entity.attributes %}
+{% if attr.is_relationship and not attr.is_array %}
+import '../services/{{ attr.type | snake_case }}_service.dart';
+{% endif %}
+{% endfor %}
+
+class {{ entity.name }}Screen extends StatefulWidget {
+  const {{ entity.name }}Screen({Key? key}) : super(key: key);
+
+  @override
+  State<{{ entity.name }}Screen> createState() => _{{ entity.name }}ScreenState();
+}
+
+class _{{ entity.name }}ScreenState extends State<{{ entity.name }}Screen> {
+  final {{ entity.name }}Service _service = {{ entity.name }}Service();
+  List<dynamic> _items = [];
+  bool _isLoading = true;
+
+  // 2. Crea instancias de servicios y listas para los Dropdowns
+  {% for attr in entity.attributes %}
+  {% if attr.is_relationship and not attr.is_array %}
+  final {{ attr.type }}Service _{{ attr.name }}Service = {{ attr.type }}Service();
+  List<dynamic> _{{ attr.name }}List = [];
+  {% endif %}
+  {% endfor %}
+
+  // Controladores para el formulario
+  {% for attr in entity.attributes %}
+  final TextEditingController _{{ attr.name }}Controller = TextEditingController();
+  {% endfor %}
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshItems();
+    _loadDropdownData(); // 3. Llama a la función para cargar datos de dropdowns
+  }
+
+  void _refreshItems() async {
+    setState(() { _isLoading = true; });
+    try {
+      final data = await _service.getItems();
+      setState(() {
+        _items = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print("Error al refrescar items: $e");
+      setState(() { _isLoading = false; });
+    }
+  }
+
+  // 4. Nueva función que carga los datos de TODAS las relaciones
+  void _loadDropdownData() async {
+  {% for attr in entity.attributes %}
+  {% if attr.is_relationship and not attr.is_array %}
+    try {
+      final data = await _{{ attr.name }}Service.getItems();
+      setState(() {
+        _{{ attr.name }}List = data;
+      });
+    } catch (e) {
+      print("Error al cargar lista de {{ attr.name }}: $e");
+    }
+  {% endif %}
+  {% endfor %}
+  }
+
+  void _showForm(Map<String, dynamic>? item) async {
+    // 5. Variables para guardar el valor seleccionado en los dropdowns
+    {% for attr in entity.attributes %}
+    {% if attr.is_relationship and not attr.is_array %}
+    dynamic _{{ attr.name }}SelectedValue = null;
+    {% endif %}
+    {% endfor %}
+
+    if (item != null) {
+      // Modo Edición: Carga los datos en los controladores
+      {% for attr in entity.attributes %}
+      _{{ attr.name }}Controller.text = item['{{ attr.name }}']?.toString() ?? '';
+      {% if attr.is_relationship and not attr.is_array %}
+      // Asigna el valor para el dropdown
+      _{{ attr.name }}SelectedValue = item['{{ attr.name }}'];
+      {% endif %}
+      {% endfor %}
+    } else {
+      // Modo Creación: Limpia los controladores
+      {% for attr in entity.attributes %}
+      _{{ attr.name }}Controller.clear();
+      {% endfor %}
+    }
+
+    showModalBottomSheet(
+      context: context,
+      elevation: 5,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        padding: EdgeInsets.only(
+          top: 15,
+          left: 15,
+          right: 15,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 120,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              
+              // --- 6. EL REEMPLAZO: Lógica de formulario genérica ---
+              {% for attr in entity.attributes %}
+              {% if attr.is_relationship and not attr.is_array %}
+              // Es una relación (ej. idCategoria): Muestra un Dropdown
+              DropdownButtonFormField<dynamic>(
+                value: _{{ attr.name }}SelectedValue,
+                hint: Text('Seleccionar {{ attr.pascal_name }}'),
+                items: _{{ attr.name }}List.map((item) {
+                  return DropdownMenuItem<dynamic>(
+                    value: item['id'], // El valor a guardar es 'id'
+                    
+                    // Usa el "display_attribute" genérico que encontramos en Python
+                    child: Text(item['{{ attr.related_display_attribute }}']?.toString() ?? 'ID: ${item['id']}'),
+                  
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setState(() {
+                    // Guarda el ID seleccionado en el controlador
+                    _{{ attr.name }}Controller.text = value.toString();
+                  });
+                },
+                decoration: InputDecoration(labelText: '{{ attr.pascal_name }}'),
+              ),
+              
+              {% elif attr.is_relationship and attr.is_array %}
+              // Es una relación N-a-N (ej. Producto-Tags)
+              // TODO: Implementar un MultiSelect
+              Text("Selección múltiple para {{ attr.pascal_name }} no implementada."),
+
+              {% else %}
+              // Es un atributo normal (String, int, etc.)
+              TextField(
+                controller: _{{ attr.name }}Controller,
+                decoration: InputDecoration(labelText: '{{ attr.pascal_name }}'),
+                {% if attr.dart_type == 'int' or attr.dart_type == 'double' %}
+                keyboardType: TextInputType.number,
+                {% endif %}
+              ),
+              {% endif %}
+              const SizedBox(height: 10),
+              {% endfor %}
+              // --- FIN DEL REEMPLAZO ---
+
+              const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  final Map<String, dynamic> data = {
+                    {% for attr in entity.attributes %}
+                    // El controlador ya tiene el ID del dropdown o el valor del textfield
+                    '{{ attr.name }}': _{{ attr.name }}Controller.text, // TODO: Convertir a int/double si es necesario
+                    {% endfor %}
+                  };
+
+                  if (item == null) {
+                    await _service.createItem(data);
+                  } else {
+                    await _service.updateItem(item['id'], data);
+                  }
+                  
+                  Navigator.of(context).pop();
+                  _refreshItems();
+                },
+                child: Text(item == null ? 'Crear' : 'Actualizar'),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+  
+  void _deleteItem(int id) async {
+    await _service.deleteItem(id);
+    ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Item eliminado')));
+    _refreshItems();
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('CRUD de {{ entity.name }}'),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: _items.length,
+              itemBuilder: (context, index) {
+                final item = _items[index];
+                
+                // 7. Título genérico para el ListTile
+                String title = item['{{ entity.display_attribute }}']?.toString() ?? 'ID: ${item['id']}';
+                
+                return Card(
+                  margin: const EdgeInsets.all(10),
+                  child: ListTile(
+                    title: Text(title),
+                    subtitle: Text('ID: ${item['id']?.toString() ?? ''}'),
+                    trailing: SizedBox(
+                      width: 100,
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _showForm(item),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _deleteItem(item['id']),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add),
+        onPressed: () => _showForm(null),
+      ),
+    );
+  }
+}

@@ -1,0 +1,26 @@
+// lib/models/{{ entity.snake_case_name }}.dart
+class {{ entity.name }} {
+  {% for attr in entity.attributes %}
+  final {{ attr.dart_type }}{{ '?' if not attr.is_relationship else '' }} {{ attr.name }};
+  {% endfor %}
+
+  {{ entity.name }}({
+    {% for attr in entity.attributes %}
+    this.{{ attr.name }},
+    {% endfor %}
+  });
+
+  factory {{ entity.name }}.fromJson(Map<String, dynamic> json) {
+    return {{ entity.name }}(
+      {% for attr in entity.attributes %}
+      {{ attr.name }}: json['{{ attr.name }}'],
+      {% endfor %}
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    {% for attr in entity.attributes %}
+    '{{ attr.name }}': {{ attr.name }},
+    {% endfor %}
+  };
+}

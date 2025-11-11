@@ -1,0 +1,31 @@
+// lib/main.dart
+import 'package:flutter/material.dart';
+import 'home_screen.dart';
+{% for entity in entities %}
+import 'screens/{{ entity.snake_case_name }}_screen.dart';
+{% endfor %}
+
+void main() {
+  runApp(const {{ project_name }}App());
+}
+
+class {{ project_name }}App extends StatelessWidget {
+  const {{ project_name }}App({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '{{ project_name }} CRUD',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const HomeScreen(),
+        {% for entity in entities %}
+        '/{{ entity.snake_case_name }}': (context) => const {{ entity.name }}Screen(),
+        {% endfor %}
+      },
+    );
+  }
+}

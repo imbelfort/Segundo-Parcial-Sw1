@@ -1,0 +1,23 @@
+// lib/home_screen.dart
+import 'package:flutter/material.dart';
+
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Menú Principal')),
+      body: ListView(
+        children: [
+          {% for entity in entities %}
+          ListTile(
+            title: const Text('Gestionar {{ entity.name }}'),
+            onTap: () => Navigator.pushNamed(context, '/{{ entity.snake_case_name }}'),
+          ),
+          {% endfor %}
+        ],
+      ),
+    );
+  }
+}
