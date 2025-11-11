@@ -21,27 +21,17 @@ import {{ imp }};
 @AllArgsConstructor
 public class {{ entity.name }} {
 
-    {# --- INICIO DE LA CORRECCIÓN --- #}
-    {# Ya no hay un ID hardcodeado. #}
-    {# En su lugar, el bucle detectará el ID del diagrama. #}
     {% for attr in entity.attributes %}
     
     {% if attr.is_id %}
-    {# Si este es el atributo (PK) del diagrama, se promueve a @Id #}
     @Id
-    {# Añadimos GeneratedValue solo si el tipo es Integer/Long #}
     {% if attr.type == 'Integer' or attr.type == 'Long' %}
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     {% endif %}
     {% endif %}
-    {# 
-      Tu script de Python ya genera el nombre en camelCase (ej. 'idProducto').
-      No necesitas la lógica compleja de 'attr.name[0:1]|lower...'.
-      Simplemente usa 'attr.name'.
-    #}
+
     @Column(name = "{{ attr.name | lower }}")
     private {{ attr.type }} {{ attr.name }};
     
     {% endfor %}
-    {# --- FIN DE LA CORRECCIÓN --- #}
 }
