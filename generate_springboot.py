@@ -98,6 +98,11 @@ def get_java_type(uml_type, all_class_names):
     return (java_type, None, java_type, False, is_array) # Asume tipo custom no-relación
 
 def parse_attribute(attr_str, all_class_names):
+    is_pk = False
+    if '(pk)' in attr_str.lower():
+        is_pk = True
+        # Limpia el (PK) del string para que no interfiera con el parseo del tipo
+        attr_str = re.sub(r'\s*\((pk|PK)\)\s*', '', attr_str, flags=re.IGNORECASE)
     """Parsea un string como '+ name: String' o '+ categoria: Categoria' a un dict"""
     attr_str = re.sub(r'^[+\-#~]\s*', '', attr_str).strip()
     parts = attr_str.split(':')
@@ -119,13 +124,16 @@ def parse_attribute(attr_str, all_class_names):
         'dart_type': dart_type,
         'import': import_needed,
         'is_relationship': is_rel,  # <-- La clave para el Dropdown
-        'is_array': is_array        # <-- La clave para 1-a-N y N-a-N
+        'is_array': is_array,
+        'is_id': is_pk       # <-- La clave para 1-a-N y N-a-N
     }
 
 def get_postman_body(entity):
     """Genera un cuerpo JSON de ejemplo para Postman"""
     body = {}
     for attr in entity.get('attributes', []):
+        if attr.get('is_id', False):
+            continue
         attr_type = attr.get('dart_type') 
         attr_name = attr.get('name')
         if attr_type == 'int':
