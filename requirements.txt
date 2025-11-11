@@ -3,6 +3,7 @@ requests>=2.28.0
 python-dotenv>=1.0.0
 Pillow>=9.0.0  # Para procesamiento de imágenes
 numpy>=1.21.0  # Para manejo de arrays
+Jinja2>=3.0.0  # Para plantillas de generación de código
 
 # Para el análisis de imágenes
 opencv-python-headless>=4.6.0  # Versión sin dependencias de GUI
